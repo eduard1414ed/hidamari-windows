@@ -178,7 +178,7 @@ sealed class D3DRenderer : IWallRenderer
                 Prepare(wall);
                 sizeMs = sw.ElapsedMilliseconds;
                 sw.Restart();
-                byte[]? pixels = await Task.Run(() => Present(wall, u, null, 1, png));
+                byte[]? pixels = await Task.Run(() => { var px = Present(wall, u, null, 1, png); gpu.Finish(); return px; });
                 drawMs = sw.ElapsedMilliseconds;
                 if (pixels != null) data = "data:image/png;base64," + Convert.ToBase64String(Png(pixels, w, h));
                 failuresInARow = 0;

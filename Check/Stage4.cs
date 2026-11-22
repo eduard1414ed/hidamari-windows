@@ -37,13 +37,16 @@ static partial class Check
     static string Reason(JsonElement reply) => Screen0(reply) is { ValueKind: JsonValueKind.Object } s ? s.GetProperty("reason").GetString() ?? "" : "no motion";
 
     /// Frames drawn and skipped over `seconds`, a second.
-    static (double drawn, double wanted, long skipped) Rate(Run run, double seconds)
+    /// A record, not a tuple: the numbers file writes properties (a tuple came out as {}).
+    record RateResult(double drawn, double wanted, long skipped);
+
+    static RateResult Rate(Run run, double seconds)
     {
         var a = Motion(run); var sw = Stopwatch.StartNew();
         Thread.Sleep(TimeSpan.FromSeconds(seconds));
         var b = Motion(run); double s = sw.Elapsed.TotalSeconds;
         long f = Frames(b) - Frames(a), k = Skipped(b) - Skipped(a);
-        return (f / s, (f + k) / s, k);
+        return new RateResult(Math.Round(f / s, 2), Math.Round((f + k) / s, 2), k);
     }
 
     static Dictionary<string, object?> MotionSettings(int scene, bool? animation) =>
@@ -312,8 +315,16 @@ static partial class Check
                 Result(g, "the switch turns the motion on, and is saved", on?.Is("animation") == true && started != null && saved, $"{started}; saved: {saved}");
                 if (started == null) return;
 
-                // the rate: 30 on mains, 15 on battery, switched on the fly
+                // the rate: 30 on mains, 15 on battery, switched on the fly. GitHub's machines have no graphics card and
+                // draw a full frame in software in about 0.4 s: what that gives is written down, and the pacing itself is
+                // checked with frames an eighth of the size (a real graphics card draws a full one in a few ms)
                 Thread.Sleep(3000);
+                var full = Rate(run, 10);
+                numbers["motionFullSizeHere"] = new { drawn = full.drawn, wanted = full.wanted, full.skipped };
+                Result(g, "full-size moving frames on this machine (no graphics card: drawn in software), written down", "INFO",
+                    $"drawn {full.drawn:F2} a second of {full.wanted:F2} due, skipped {full.skipped} (the drawing too slow; counted, not piled up)");
+                Command(run, new { @do = "motionScale", scale = 0.125 });
+                Thread.Sleep(2000);
                 var r30 = Rate(run, 20);
                 Command(run, new { @do = "power", pretend = "battery" });
                 Thread.Sleep(1500);
@@ -326,8 +337,9 @@ static partial class Check
                 var rBack = Rate(run, 10);
                 numbers["motionRate"] = new { mains = r30, battery = r15, saver = rSaver, back = rBack };
                 bool Near(double x, int f) => Math.Abs(x - f) <= f * 0.03;
-                Result(g, "30 frames a second on mains power, 15 on battery and with energy saver, changed on the fly",
-                    Near(r30.wanted, 30) && Near(r15.wanted, 15) && Near(rSaver.wanted, 15) && Near(rBack.wanted, 30) && r30.drawn <= 30.5 && r15.drawn <= 15.5,
+                Result(g, "30 frames a second on mains power, 15 on battery and with energy saver, changed on the fly (frames an eighth of the size)",
+                    Near(r30.wanted, 30) && Near(r15.wanted, 15) && Near(rSaver.wanted, 15) && Near(rBack.wanted, 30)
+                    && Near(r30.drawn, 30) && Near(r15.drawn, 15) && Near(rSaver.drawn, 15) && Near(rBack.drawn, 30),
                     $"frames due a second: {r30.wanted:F2} / {r15.wanted:F2} / {rSaver.wanted:F2} / {rBack.wanted:F2}; drawn {r30.drawn:F2} / {r15.drawn:F2} / {rSaver.drawn:F2} / {rBack.drawn:F2}, " +
                     $"skipped (the drawing too slow) {r30.skipped} / {r15.skipped}; {Screen0(Motion(run)).GetProperty("pacing")}");
 

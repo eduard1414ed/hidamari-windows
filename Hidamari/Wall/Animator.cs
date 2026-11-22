@@ -40,6 +40,9 @@ sealed class Animator : IDisposable
 
     /// For the checks: seconds added to every screen's motion clock (a day or a week of motion without waiting).
     public double ClockOffset;
+    /// For the checks only: moving frames this much smaller (GitHub's machines draw in software, about two full frames
+    /// a second; the pacing is checked with small frames). 1 everywhere else.
+    public double CheckScale = 1;
     /// Called on the app's thread when a screen's wall must get a still frame (the motion faded out into it).
     public event Action<WallWindow, string>? StillWanted;
 
@@ -290,6 +293,7 @@ sealed class Animator : IDisposable
             {
                 if (!running) return;
                 var (w, h) = D3DRenderer.FrameSize(Wall.Screen);
+                if (a.CheckScale < 1) { w = Math.Max(8, (int)Math.Round(w * a.CheckScale)); h = Math.Max(8, (int)Math.Round(h * a.CheckScale)); }
                 if (baseU == null || baseFor != state || baseW != w || baseH != h)
                 {
                     baseU = WallLighting.Uniforms(state.Input with { Width = w, Height = h, Motion = Motion.Still });

@@ -290,6 +290,28 @@ sealed class D3DWall : IDisposable
         return Read(target, w, h);
     }
 
+    /// Waits until the graphics card has finished everything asked of it so far (a still frame's time is then its real
+    /// cost, not only the time to ask for it). Takes Lock while it asks, not while it waits.
+    public void Finish()
+    {
+        ID3D11Query q;
+        lock (Lock)
+        {
+            q = Device.CreateQuery(new QueryDescription(QueryType.Event));
+            Context.End(q);
+            Context.Flush();
+        }
+        using (q)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.ElapsedMilliseconds < 5000)
+            {
+                lock (Lock) { if (Context.IsDataAvailable(q)) return; }
+                Thread.Sleep(1);
+            }
+        }
+    }
+
     byte[] Read(ID3D11Texture2D target, int w, int h)
     {
         using var staging = Device.CreateTexture2D(new Texture2DDescription(Format.B8G8R8A8_UNorm, (uint)w, (uint)h, 1, 1, BindFlags.None,

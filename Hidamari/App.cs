@@ -703,6 +703,8 @@ sealed class App : ApplicationContext
                 settings.Scene = sc;
                 Changed($"scene {Strings.Scenes[sc]}");
                 WantDraw("a scene was chosen");
+                // the motion stops (or starts) now, not after the new scene's frame or the next look
+                UpdateMotion("a scene was chosen");
                 break;
             }
             case "plant":
@@ -917,6 +919,10 @@ sealed class App : ApplicationContext
                     if (animator != null) animator.ClockOffset = c.GetProperty("offset").GetDouble();
                     break;
                 case "lookAgain": UpdateMotion("check: look again"); break;
+                case "motionScale":
+                    if (animator != null) animator.CheckScale = Math.Clamp(c.GetProperty("scale").GetDouble(), 0.01, 1);
+                    Log.Write($"check: moving frames drawn at {c.GetProperty("scale").GetDouble():0.###} of their size");
+                    break;
                 // what Windows would tell: the screen locked, the screens off, sleep, another user (cannot be done for real on GitHub)
                 case "pretend":
                     switch (c.GetProperty("what").GetString())
