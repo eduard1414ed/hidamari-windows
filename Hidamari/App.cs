@@ -1010,6 +1010,8 @@ sealed class App : ApplicationContext
         try
         {
             Directory.CreateDirectory(dir);
+            // the same video drawn by Metal on the Mac reads these (tools/windows-stage4-video.swift)
+            File.WriteAllText(Path.Combine(dir, "params.json"), c.GetRawText());
             var gpu = d3d?.Gpu ?? throw new InvalidOperationException("Direct3D does not draw now");
             var page = (Dictionary<string, object?>)Plain(c.GetProperty("page"))!;
             int w = c.GetProperty("width").GetInt32(), h = c.GetProperty("height").GetInt32(), fps = c.GetProperty("fps").GetInt32();
