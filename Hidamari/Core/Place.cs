@@ -22,7 +22,7 @@ public sealed record Place(string Name, string Country, double Lat, double Lng, 
     /// know a new name gets its Windows name, and failing that the computer's own clock (the journal says so).
     public TimeZoneInfo TimeZone => Zones.Find(Zone);
 
-    /// For the journal, which friends send to Ed: the point to one decimal (about 10 km), never more.
+    /// For the journal, which people may send when something goes wrong: the point to one decimal (about 10 km), never more.
     public string ForJournal => $"{Name} ({Country}) {Lat:F1}, {Lng:F1}, {Zone}";
 
     public Dictionary<string, object?> ForPage() => new()

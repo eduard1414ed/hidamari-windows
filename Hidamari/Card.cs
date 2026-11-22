@@ -237,6 +237,14 @@ sealed class Card : IDisposable
         catch (Exception e) { Log.Write($"card: could not send the state ({e.Message})"); }
     }
 
+    /// Any other message to the page (the search's lines).
+    public void Send(object message)
+    {
+        if (core == null || suspended) return;
+        try { core.PostWebMessageAsJson(JsonSerializer.Serialize(message)); }
+        catch (Exception e) { Log.Write($"card: could not send a message ({e.Message})"); }
+    }
+
     void OnMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         JsonElement m;

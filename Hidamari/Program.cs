@@ -7,6 +7,7 @@ static class Program
 {
     const string MutexName = @"Local\Hidamari";
     const string AgainName = @"Local\Hidamari.Again";
+    public static string Version => typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0";
 
     [STAThread]
     static int Main()

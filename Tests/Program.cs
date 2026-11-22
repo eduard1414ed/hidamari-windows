@@ -140,7 +140,7 @@ Result("MET: the point goes out with two decimals", MetForecast.Query(52.520008,
 Result("MET: a broken answer is no weather, not a crash", Try(() => MetForecast.At("{\"type\":\"Feature\"}", DateTimeOffset.UtcNow) == null), "read as nothing");
 static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
 
-// the whole table of symbols, for Ed
+// the whole table of symbols, to read
 {
     var all = new[] { "clearsky", "fair", "partlycloudy", "cloudy", "fog", "lightrain", "rain", "heavyrain", "lightrainshowers", "rainshowers", "heavyrainshowers",
         "lightrainandthunder", "rainandthunder", "heavyrainandthunder", "lightrainshowersandthunder", "rainshowersandthunder", "heavyrainshowersandthunder",

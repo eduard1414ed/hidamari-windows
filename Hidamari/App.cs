@@ -19,6 +19,7 @@ sealed class App : ApplicationContext
     readonly Settings settings;
     readonly bool firstLaunch;
     readonly Card card;
+    readonly Surroundings around;
     readonly System.Windows.Forms.Timer saveSoon = new() { Interval = 400 };
     readonly System.Windows.Forms.Timer thumbsSoon = new() { Interval = 500 };
     readonly System.Windows.Forms.Timer tick = new();
@@ -57,13 +58,14 @@ sealed class App : ApplicationContext
         engine = new Engine(policy, Path.Combine(Log.Folder, "web"));
         if (checkFolder != null) Engine.PageTimeout = TimeSpan.FromSeconds(120);
         settings = Settings.Load(out firstLaunch);
+        around = new Surroundings(settings, Now, why => WantDraw(why), Changed, () => { if (card.IsOpen) card.Push(); }, checkFolder != null);
         LoginItem.FollowMove();
         messages = new Messages(this);
         tray = new Tray(messages.Handle, () => Quit("Quit in the tray menu"), OnSelect);
         card = new Card(engine.SharedEnvironment, CardState, tray.Rect, checkFolder != null);
         engine.SharedWith = () => card.EngineRunning;
         card.Chosen += (type, m) => { try { OnChosen(type, m); } catch (Exception e) { Log.Write($"error: card {type}: {e}"); } };
-        card.Opened += () => { wakeWanted = true; Kick(); };
+        card.Opened += () => { wakeWanted = true; Kick(); around.OnCardOpened(); };
         card.Closed += _ => { dragging = false; restWanted = true; Kick(); };
         card.Layout += SaveLayout;
         // Settings → Desktops (All / This one) is not offered: Windows does not tell an app which virtual desktop its windows are on
@@ -93,6 +95,7 @@ sealed class App : ApplicationContext
         }
         tray.Add("start");
         ui.Post(_ => WantRebuild("start"), null);
+        ui.Post(_ => around.Start(), null);
     }
 
     void Wait(EventWaitHandle ev, Action then) =>
@@ -292,9 +295,11 @@ sealed class App : ApplicationContext
         if (targets.Count == 0) { Schedule(); return; }
 
         var now = Now();
-        var state = Wall.State(now, settings);
+        var place = settings.Place;
+        var weather = around.ForWall(settings.Scene);
+        var state = Wall.State(now, settings, weather);
         var moment = Wall.Moment(now, settings);
-        var local = TimeZoneInfo.ConvertTime(moment, Wall.Berlin);
+        var local = TimeZoneInfo.ConvertTime(moment, place.TimeZone);
         var total = Stopwatch.StartNew();
         var cpuBefore = measure.CpuByPid();
         long startMs = 0;
@@ -318,8 +323,8 @@ sealed class App : ApplicationContext
                     shownMoment = moment;
                     if (card.IsOpen) card.Push();
                 }
-                Log.Write($"frame {frames} ({why}) on {w.Screen.Short}: Berlin {local:yyyy-MM-dd HH:mm:ss}{(settings.FollowsSun ? "" : " (Live sun off)")}, utcOffset {state["utcOffset"]}, " +
-                          $"scene {settings.Scene}, wall {settings.Wall}, plant {settings.Plant}, weather {settings.ManualWeather} (cloud {state["cloud"]}, {state["weather"]}){((bool)state["mirror"]! ? ", mirrored" : "")}, " +
+                Log.Write($"frame {frames} ({why}) on {w.Screen.Short}: {place.Name} {local:yyyy-MM-dd HH:mm:ss}{(settings.FollowsSun ? "" : " (Live sun off)")}, utcOffset {state["utcOffset"]}, " +
+                          $"scene {settings.Scene}, wall {settings.Wall}, plant {settings.Plant}, weather {(settings.LiveWeather ? "live" : "by hand " + settings.ManualWeather)} (cloud {state["cloud"]:0.00}, {state["weather"]}){((bool)state["mirror"]! ? ", mirrored" : "")}, " +
                           $"sun {r.Sun:F2}°, frame {r.Width}x{r.Height} for {w.Screen.Bounds.Width}x{w.Screen.Bounds.Height} at {w.Screen.Scale * 100:F0} %, " +
                           $"size {r.SizeMs} ms, draw {r.DrawMs} ms, copy {r.CopyMs} ms ({r.Mode})");
                 if (r.Png != null) SaveCheck(w, state, r);
@@ -403,7 +408,7 @@ sealed class App : ApplicationContext
             {
                 state,
                 frame = frames,
-                settings = new { settings.Scene, settings.Wall, settings.Plant, settings.FollowsSun, settings.PinnedMinutes, settings.ManualWeather, settings.WindowOnRight, custom = settings.Custom.ForPage() },
+                settings = new { settings.Scene, settings.Wall, settings.Plant, settings.FollowsSun, settings.PinnedMinutes, settings.ManualWeather, settings.WindowOnRight, settings.LiveWeather, settings.PlaceMode, place = settings.Place.ForPage(), custom = settings.Custom.ForPage() },
                 screen = new { w.Screen.Name, w.Screen.Bounds.X, w.Screen.Bounds.Y, w.Screen.Bounds.Width, w.Screen.Bounds.Height, w.Screen.Scale },
                 canvas = new { width = r.Width, height = r.Height },
                 devicePixelRatio = w.Screen.Scale,
@@ -439,7 +444,10 @@ sealed class App : ApplicationContext
             ["login"] = LoginItem.IsOn, ["firstAnswered"] = settings.FirstLaunchAnswered,
             ["shown"] = (double)(shownMoment ?? Wall.Moment(now, settings)).ToUnixTimeMilliseconds(),
             ["now"] = (double)now.ToUnixTimeMilliseconds(),
-            ["place"] = new Dictionary<string, object?> { ["name"] = "Berlin", ["lat"] = Wall.Latitude, ["lng"] = Wall.Longitude, ["tz"] = "Europe/Berlin" },
+            ["place"] = settings.Place.ForPage(),
+            ["placeMode"] = settings.PlaceMode,
+            ["locationUnavailable"] = around.LocationUnavailable,
+            ["live"] = settings.LiveWeather,
             ["ownThumbs"] = ownThumbs,
         };
     }
@@ -494,6 +502,27 @@ sealed class App : ApplicationContext
             }
             case "quit":
                 Quit("Quit on the card");
+                break;
+            case "search":
+            {
+                var text = m.GetProperty("text").GetString() ?? "";
+                int sid = m.TryGetProperty("id", out var si) ? si.GetInt32() : 0;
+                _ = Found(text, sid);
+                break;
+            }
+            case "searchOpen":
+                if (m.GetProperty("open").GetBoolean()) { Log.Write("card: place search opened"); around.SearchOpened(); }
+                else { Log.Write("card: place search closed"); around.SearchClosed(); }
+                break;
+            case "choosePlace":
+                around.Choose(m.GetProperty("index").GetInt32());
+                break;
+            case "currentLocation":
+                around.ChooseCurrent();
+                break;
+            case "locationSettings":
+                Log.Write("card: Windows' location settings opened");
+                Locator.OpenSettings();
                 break;
             case "login":
                 LoginItem.Set(m.GetProperty("on").GetBoolean(), "Settings → Launch at login");
@@ -568,6 +597,9 @@ sealed class App : ApplicationContext
             case "pinned":
                 settings.PinnedMinutes = Math.Clamp(v.GetDouble(), 0, 1439);
                 break;
+            case "live":
+                around.SetLive(v.GetBoolean());
+                break;
             case "windowOnRight":
             {
                 bool right = v.GetBoolean();
@@ -588,6 +620,24 @@ sealed class App : ApplicationContext
                 break;
             }
         }
+    }
+
+    /// The search's lines for what was typed; `id` lets the page drop answers to letters typed since.
+    async Task Found(string text, int id)
+    {
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            var list = await around.Search(text);
+            card.Send(new
+            {
+                type = "found", id, text,
+                items = list.Select((c, i) => new { title = c.Title, subtitle = c.Subtitle, index = i }).ToArray(),
+            });
+            // what was typed is never written in the journal: only how long it took
+            if (checkFolder != null || sw.ElapsedMilliseconds > 50) Log.Write($"card: search {text.Length} letter(s), {list.Count} place(s) in {sw.ElapsedMilliseconds} ms");
+        }
+        catch (Exception e) { Log.Write($"card: the search failed ({e.Message})"); }
     }
 
     /// A settings change: saved a moment later (several come together), told to the card, written in the journal.
@@ -686,13 +736,26 @@ sealed class App : ApplicationContext
                 case "live": card.LiveLook = c.GetProperty("look").GetString() ?? "dim"; card.Push(); break;
                 case "choose": OnChosen(c.GetProperty("type").GetString()!, c); break;
                 case "push": card.Push(); break;
+                case "weather":
+                {
+                    var t = around.Test ?? throw new InvalidOperationException("the weather comes from MET, not from the test source");
+                    if (c.TryGetProperty("offline", out var off) && off.GetBoolean()) t.GoOffline();
+                    else t.Set(new WeatherNow(c.GetProperty("cloud").GetDouble(), Enum.Parse<WeatherKind>(c.GetProperty("kind").GetString()!, true),
+                        c.TryGetProperty("wind", out var wi) ? wi.GetDouble() : null));
+                    around.Ask("check: new test weather", scheduled: true);
+                    break;
+                }
+                case "fix":
+                    _ = around.Take(new Locator.Fix(Locator.Outcome.Located, c.GetProperty("lat").GetDouble(), c.GetProperty("lng").GetDouble(), 100, "given by the check"), "check");
+                    break;
+                case "locate": _ = around.Locate("check"); break;
                 case "measure": measure.Write(c.TryGetProperty("why", out var why) ? why.GetString() ?? "check" : "check"); break;
                 default: throw new InvalidDataException($"unknown command {what}");
             }
             reply = "ok";
         }
         catch (Exception e) { reply = e.Message; Log.Write($"check: command failed ({e.Message})"); }
-        try { File.WriteAllText(Path.Combine(checkFolder!, "command-reply.json"), JsonSerializer.Serialize(new { id, reply, open = card.IsOpen, lastOpenMs = card.LastOpenMs })); }
+        try { File.WriteAllText(Path.Combine(checkFolder!, "command-reply.json"), JsonSerializer.Serialize(new { id, reply, open = card.IsOpen, lastOpenMs = card.LastOpenMs, asked = around.Asked, located = around.Located?.ToString(), place = settings.Place.ForPage(), placeMode = settings.PlaceMode })); }
         catch { }
     }
 
@@ -731,7 +794,8 @@ sealed class App : ApplicationContext
     {
         asleep = sleeping;
         Log.Write(sleeping ? "power: going to sleep" : "power: woke up");
-        if (!sleeping) WantDraw("woke up");
+        if (sleeping) around.SetQuiet(true, "going to sleep");
+        else { WantDraw("woke up"); around.OnWake(); }
     }
 
     public void OnDisplay(int state)
@@ -750,10 +814,12 @@ sealed class App : ApplicationContext
             case WTS_SESSION_LOCK:
                 locked = true;
                 Log.Write("session: locked");
+                around.SetQuiet(true, "locked");
                 break;
             case WTS_SESSION_UNLOCK:
                 locked = false;
                 Log.Write("session: unlocked");
+                around.SetQuiet(false, "unlocked");
                 WantDraw("unlocked", staleOnly: true);
                 break;
             default:
@@ -783,6 +849,7 @@ sealed class App : ApplicationContext
         foreach (var w in waits) w.Unregister(null);
         try { card.Close("the app quits"); card.Dispose(); } catch (Exception e) { Log.Write($"card: {e.Message}"); }
         covers.Dispose();
+        around.Dispose();
         Drop(walls, "quit");
         walls = new();
         if (desktop.Progman != IntPtr.Zero) desktop.Restore();
