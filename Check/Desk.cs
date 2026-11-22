@@ -207,8 +207,52 @@ static class Desk
                 }
             }
             catch (Exception e) { names = e.Message; }
+            // Windows 11 keeps the question in a band above every window that UI Automation does not show to an
+            // ordinary program: then "No" is found as a person sees it, the wide blue button (Windows' accent
+            // #005FB8), and clicked
+            if (button == "No" && BlueButton() is { } blue)
+            {
+                Native.Click(new Point(blue.X + blue.Width / 2, blue.Y + blue.Height / 2));
+                Thread.Sleep(1500);
+                bool gone = BlueButton() == null;
+                return $"\"No\" clicked as seen on the screen, the blue button {blue} (UI Automation does not show the question), " +
+                       $"after {sw.ElapsedMilliseconds} ms; the question {(gone ? "has gone" : "is still there")}; windows: {names}";
+            }
         }
         return $"no question about the place found; windows: {names}";
+    }
+
+    /// The wide blue button of a Windows 11 question on the screen (screen coordinates), or null: rows with a run of at
+    /// least 100 pixels of Windows' accent blue (icons are never that wide).
+    static Rectangle? BlueButton()
+    {
+        using var shot = Pictures.Shot(null);
+        var v = SystemInformation.VirtualScreen;
+        int left = int.MaxValue, right = -1, top = int.MaxValue, bottom = -1;
+        var data = shot.LockBits(new Rectangle(0, 0, shot.Width, shot.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly,
+            System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        try
+        {
+            var row = new int[shot.Width];
+            for (int y = 0; y < shot.Height; y++)
+            {
+                System.Runtime.InteropServices.Marshal.Copy(data.Scan0 + y * data.Stride, row, 0, shot.Width);
+                int run = 0;
+                for (int x = 0; x < shot.Width; x++)
+                {
+                    int c = row[x], r = (c >> 16) & 255, gr = (c >> 8) & 255, b = c & 255;
+                    run = r < 40 && Math.Abs(gr - 95) < 35 && Math.Abs(b - 184) < 35 ? run + 1 : 0;
+                    if (run >= 100)
+                    {
+                        left = Math.Min(left, x - run + 1); right = Math.Max(right, x);
+                        top = Math.Min(top, y); bottom = Math.Max(bottom, y);
+                    }
+                }
+            }
+        }
+        finally { shot.UnlockBits(data); }
+        if (right < 0 || bottom - top < 15 || bottom - top > 80) return null;
+        return new Rectangle(v.X + left, v.Y + top, right - left + 1, bottom - top + 1);
     }
 
     /// Windows 11: the icon of a new app goes under the "^" arrow. The Settings app's "Other system tray icons"

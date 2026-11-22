@@ -203,6 +203,7 @@ static partial class Check
     {
         const string g = "card: first launch";
         var opened = run.Next("card: opened (first launch)", TimeSpan.FromSeconds(30));
+        var openedAt = DateTime.UtcNow.AddSeconds(-5);
         // Windows 11 asks itself whether the app may know the place, over everything, the screen dimmed, and the
         // question stays until answered: a picture of it for the sheet, then "No", as a careful person would (the rest
         // of the run goes the "location unavailable" way, as on these machines anyway)
@@ -214,7 +215,7 @@ static partial class Check
              && !run.Lines().Any(x => x.Contains("place: located (launch") || x.Contains("place: not located (launch")); ) Thread.Sleep(500);
         Thread.Sleep(1500);
         facts["locationAtFirstLaunch"] = run.Lines().FirstOrDefault(x => x.Contains("(launch)") && x.Contains("place:"));
-        var l = opened != null ? LayoutAfter(run, DateTime.UtcNow.AddSeconds(-5), x => x.Open) : null;
+        var l = opened != null ? LayoutAfter(run, openedAt, x => x.Open) : null;
         Result(g, "on a clean machine the card opens by itself with the question", opened != null && l != null && l.Is("first") && CardSeen(),
             $"journal: {opened ?? "no open"}; question shown: {l?.Is("first")}");
         if (l == null) { Command(run, new { @do = "close" }); return; }
