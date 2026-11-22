@@ -32,7 +32,7 @@ static class Strings
     /// the city search: its first line goes back to finding the place by itself
     public const string CurrentLocation = "Current Location";
     public const string SearchCity = "Search for a city";
-    /// TEMP: when Windows does not give the place, the button to Windows' location settings in the city search
+    /// Windows only: when Windows does not give the place, the button to Windows' location settings in the city search
     public const string OpenLocationSettings = "Open location settings";
     /// Windows only: where the live weather and the list of cities come from (MET Norway and GeoNames ask for it),
     /// "MET Norway, GeoNames" as the settings' last line
