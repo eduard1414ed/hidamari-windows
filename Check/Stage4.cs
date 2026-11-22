@@ -64,6 +64,22 @@ static partial class Check
 
     // ---------- Direct3D by default, its frames against the web engine's ----------
 
+    /// Quits the app and waits for it to be gone, so the next start is not a second copy.
+    static void Stop(Run r)
+    {
+        Run.Signal("Quit");
+        if (!r.Proc.WaitForExit(20000)) { Say($"the app (pid {r.Proc.Id}) did not quit in 20 s; ended"); try { r.Proc.Kill(true); } catch { } r.Proc.WaitForExit(5000); }
+    }
+
+    /// The mean of a picture's red, green and blue, 0–255, from a grid of points.
+    static double Level(Bitmap b)
+    {
+        double sum = 0; int n = 0;
+        for (int y = 5; y < b.Height; y += Math.Max(1, b.Height / 40))
+            for (int x = 5; x < b.Width; x += Math.Max(1, b.Width / 40)) { var c = b.GetPixel(x, y); sum += (c.R + c.G + c.B) / 3.0; n++; }
+        return n == 0 ? 0 : sum / n;
+    }
+
     static void Direct3DRun()
     {
         const string g = "Direct3D";
@@ -84,8 +100,11 @@ static partial class Check
             using (var frame = run.Frame())
             {
                 var s = frame == null ? new Pictures.Stats(255, new double[256], 0) : Pictures.VsFrame(shot, frame, ScreenRect, Work);
-                Result(g, "the screen shows Direct3D's frame (through DirectComposition)", s.Same,
-                    $"{(run.Lines().FirstOrDefault(l => l.Contains("desktop: ") && l.Contains("raised") || l.Contains("classic")) ?? "")}; {s}");
+                // a black frame on a black screen is "the same" too: the frame must have a wall in it (the first run drew
+                // nothing at all and passed this)
+                var level = frame == null ? 0 : Level(frame);
+                Result(g, "the screen shows Direct3D's frame (through DirectComposition)", s.Same && level > 8,
+                    $"{(run.Lines().FirstOrDefault(l => l.Contains("desktop: ") && l.Contains("raised") || l.Contains("classic")) ?? "")}; {s}; frame's mean level {level:F1}/255");
             }
 
             // the same states drawn by both, here; Metal's on the Mac (tools/windows-stage4.sh judge)
@@ -106,7 +125,7 @@ static partial class Check
                 CompareFolder(g, folder, dir, JsonDocument.Parse(File.ReadAllText(Here(file))).RootElement.EnumerateArray().Select(e => e.GetProperty("name").GetString()!).ToList());
             }
         }
-        finally { run.SaveLog("hidamari.log"); Run.Signal("Quit"); run.Proc.WaitForExit(20000); }
+        finally { run.SaveLog("hidamari.log"); Stop(run); }
     }
 
     /// Direct3D's frames against the web engine's, state by state (the limits of the Mac's comparison).
@@ -172,7 +191,7 @@ static partial class Check
                 var why = run.Lines().FirstOrDefault(l => l.Contains("d3d: cannot draw here"));
                 Result(g, "Direct3D cannot start: the web engine draws by itself", first != null && why != null && !first.Contains("(direct3d)"), $"{why}; {first}");
             }
-            finally { run.SaveLog("hidamari.log"); Run.Signal("Quit"); run.Proc.WaitForExit(20000); }
+            finally { run.SaveLog("hidamari.log"); Stop(run); }
         }
         // asked for at the start, remembered, and back
         string? Start(string name, Dictionary<string, string>? env, out string? drawing)
@@ -184,7 +203,7 @@ static partial class Check
                 drawing = run.Lines().FirstOrDefault(l => l.Contains("app: drawing "));
                 return f;
             }
-            finally { run.SaveLog("hidamari.log"); Run.Signal("Quit"); run.Proc.WaitForExit(20000); }
+            finally { run.SaveLog("hidamari.log"); Stop(run); }
         }
         var web = Start("fallback-asked", new() { ["HIDAMARI_RENDERER"] = "web" }, out var d1);
         var kept = Run.Read(SettingsFile).Contains("\"renderer\":\"web\"") || Run.Read(SettingsFile).Contains("\"renderer\": \"web\"");
@@ -228,7 +247,7 @@ static partial class Check
             var st2 = WallStill(r, Path.Combine("stage4", "device-lost-web.png"));
             Result(l, "lost again and again: the web engine takes over, written in the journal", gave != null && webFrame != null && st2.Same, $"{gave}; {webFrame}; screen vs frame: {st2}");
         }
-        finally { r.SaveLog("hidamari.log"); Run.Signal("Quit"); r.Proc.WaitForExit(20000); }
+        finally { r.SaveLog("hidamari.log"); Stop(r); }
     }
 
     static string RestartAdapter()
@@ -355,7 +374,7 @@ static partial class Check
                 var real = run.Lines().FirstOrDefault(x => x.Contains("Remote Desktop session: "));
                 numbers["remoteDesktopHere"] = real;
             }
-            finally { cover?.Dispose(); cover = null; run.SaveLog("hidamari.log"); Run.Signal("Quit"); run.Proc.WaitForExit(20000); }
+            finally { cover?.Dispose(); cover = null; run.SaveLog("hidamari.log"); Stop(run); }
         }
         // kept: the next start moves at once
         using (var run = Run.App(app, Path.Combine(Stage4Dir, "animation-kept")))
@@ -366,7 +385,7 @@ static partial class Check
                 var started = run.Next("animation: running", TimeSpan.FromSeconds(30));
                 Result(g, "Animation stays on after a new start", f != null && started != null, started ?? "not running");
             }
-            finally { run.SaveLog("hidamari.log"); Run.Signal("Quit"); run.Proc.WaitForExit(20000); }
+            finally { run.SaveLog("hidamari.log"); Stop(run); }
         }
     }
 
@@ -417,7 +436,7 @@ static partial class Check
                     row["journalMeasure"] = run.Lines().LastOrDefault(x => x.Contains("measure (check: moving)"));
                 }
             }
-            finally { run.SaveLog("hidamari.log"); Run.Signal("Quit"); run.Proc.WaitForExit(20000); rows.Add(row); }
+            finally { run.SaveLog("hidamari.log"); Stop(run); rows.Add(row); }
             Say($"stage 4 numbers {renderer}: {JsonSerializer.Serialize(row)}");
         }
         numbers["measurements"] = rows;
@@ -486,7 +505,7 @@ static partial class Check
             }
             Result("Animation", "a day and a week of motion, the wind changing every hour: the frames still move evenly", smooth, string.Join("; ", even));
         }
-        finally { run.SaveLog("hidamari.log"); Run.Signal("Quit"); run.Proc.WaitForExit(20000); }
+        finally { run.SaveLog("hidamari.log"); Stop(run); }
     }
 
     static List<double[]> Hourly(int days)

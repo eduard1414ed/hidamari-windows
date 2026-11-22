@@ -51,6 +51,13 @@ sealed class Run : IDisposable
     public string[] Lines()
     {
         var lines = Text().Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.TrimEnd('\r')).ToArray();
+        // the app's journal starts with "Hidamari … pid N,": only this process's lines (a run started just after another
+        // one once read the other's first frame, stage 4)
+        if (LogPath == AppLog)
+        {
+            int own = Array.FindIndex(lines, l => l.Contains($" pid {Proc.Id},") && l.Contains(" Hidamari "));
+            return own < 0 ? Array.Empty<string>() : lines[own..];
+        }
         int from = Array.FindIndex(lines, l => l.Length >= 24
             && DateTime.TryParse(l[..24], System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var t)
@@ -92,10 +99,14 @@ sealed class Run : IDisposable
     public List<string> Since_(string text) => Lines().Skip(mark).Where(l => l.Contains(text)).ToList();
 
     /// The newest frame of the page the app saved for `screen` (DISPLAY1 …).
-    public Bitmap? Frame(string screen = "DISPLAY1")
+    public Bitmap? Frame(string? screen = null)
     {
-        var a = Path.Combine(Folder, "canvas", $"canvas-{screen}.png");
-        return Pictures.Load(a);
+        // no screen named: the newest frame of any (Windows may rename the screen, DISPLAY1 → DISPLAY3, when the
+        // graphics adapter restarts)
+        var dir = Path.Combine(Folder, "canvas");
+        var a = screen != null ? Path.Combine(dir, $"canvas-{screen}.png")
+            : Directory.Exists(dir) ? new DirectoryInfo(dir).GetFiles("canvas-DISPLAY*.png").OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault()?.FullName : null;
+        return a == null ? null : Pictures.Load(a);
     }
 
     /// Signals one of the app's check events (Draw, Measure, Quit, Command).

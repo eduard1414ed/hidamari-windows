@@ -33,6 +33,7 @@ sealed class D3DWall : IDisposable
     readonly ID3D11Buffer constants;
     readonly ID3D11SamplerState repeat, clamp;
     readonly ID3D11BlendState mixing;
+    readonly ID3D11RasterizerState bothSides;
     readonly ID3D11ShaderResourceView blank;
     readonly ID3D11Texture2D blankTexture;
     readonly Dictionary<string, (ID3D11Texture2D tex, ID3D11ShaderResourceView view)> pictures = new();
@@ -81,6 +82,9 @@ sealed class D3DWall : IDisposable
         clamp = Device.CreateSamplerState(SamplerDescription.LinearClamp);
         // new = frame · a + what is there · (1 − a), a = the blend factor: the second motion of a crossfade (Mac update 1.1)
         mixing = Device.CreateBlendState(new BlendDescription(Blend.BlendFactor, Blend.InverseBlendFactor, Blend.One, Blend.Zero));
+        // the prototype's triangle (-1,-1), (3,-1), (-1,3) turns anticlockwise, which Direct3D by default takes for its
+        // back and does not draw (WebGL and Metal draw both sides): nothing is culled
+        bothSides = Device.CreateRasterizerState(new RasterizerDescription(CullMode.None, FillMode.Solid));
         // stands in for a picture the frame does not read (WebGL's photo texture starts the same: 1×1 white)
         unsafe
         {
@@ -242,6 +246,7 @@ sealed class D3DWall : IDisposable
         var c = Context;
         c.OMSetRenderTargets(target);
         c.RSSetViewport(new Viewport(ox, oy, (float)u.Res[0], (float)u.Res[1]));
+        c.RSSetState(bothSides);
         c.IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
         c.IASetInputLayout(null);
         c.VSSetShader(vs);
@@ -331,7 +336,7 @@ sealed class D3DWall : IDisposable
             foreach (var (_, p) in pictures) { p.view.Dispose(); p.tex.Dispose(); }
             pictures.Clear();
             blank.Dispose(); blankTexture.Dispose();
-            mixing.Dispose(); repeat.Dispose(); clamp.Dispose(); constants.Dispose(); vs.Dispose(); ps.Dispose();
+            mixing.Dispose(); bothSides.Dispose(); repeat.Dispose(); clamp.Dispose(); constants.Dispose(); vs.Dispose(); ps.Dispose();
             try { Composition.Dispose(); } catch { }
             try { Context.ClearState(); Context.Flush(); } catch { }
             Context.Dispose();
