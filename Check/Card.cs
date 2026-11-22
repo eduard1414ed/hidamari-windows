@@ -619,12 +619,12 @@ static partial class Check
         {
             run.Mark();
             var stateFile = Path.Combine(run.Folder, "canvas", "state-DISPLAY1.json");
-            var before = File.Exists(stateFile) ? File.GetLastWriteTimeUtc(stateFile) : DateTime.MinValue;
+            var stateBefore = File.Exists(stateFile) ? File.GetLastWriteTimeUtc(stateFile) : DateTime.MinValue;
             Command(run, new { @do = "choose", type = "set", change = new Dictionary<string, object> { ["scene"] = sc } });
             var frame = run.Next("frame ", TimeSpan.FromSeconds(120));
             // on a slow machine the journal says "frame" a moment before the check copy of the state is written
             for (var sw = Stopwatch.StartNew(); sw.Elapsed < TimeSpan.FromSeconds(10) && File.Exists(stateFile)
-                 && File.GetLastWriteTimeUtc(stateFile) <= before; ) Thread.Sleep(200);
+                 && File.GetLastWriteTimeUtc(stateFile) <= stateBefore; ) Thread.Sleep(200);
             Thread.Sleep(300);
             var st = WallState(run)?.GetProperty("state");
             bool mirror = st != null && st.Value.TryGetProperty("mirror", out var mv) && mv.ValueKind == JsonValueKind.True;
