@@ -1,0 +1,104 @@
+# Windows: build the app (and the probe, kept as the yardstick for memory), run both on GitHub's Windows machines and
+# check them. What is checked: Check/Program.cs. Results (pictures, report, journals) are kept as the run's
+# artifacts. A push runs the quick check; "[full]" in the commit message (or a manual run with mode full) adds the
+# memory comparison of the four ways of keeping the web engine and ten minutes of the app's own measurements.
+# "[compile]" in the commit message only builds the app on Linux (no Windows machines, no minutes spent there).
+name: Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: quick or full
+        default: full
+  push:
+    branches: [main, 'stage-*']
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+
+# nothing here writes to the repository
+permissions:
+  contents: read
+
+jobs:
+  # a compile check on Linux first: cheap, and it stops a broken build before the Windows machines start
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Texts are the Mac app's
+        run: python3 tools/check-strings.py
+      - name: Build
+        run: |
+          dotnet build Hidamari -c Release -p:SkipStringsCheck=true
+          dotnet build HidamariProbe -c Release
+          dotnet build Check -c Release
+
+  check:
+    needs: compile
+    if: ${{ !contains(github.event.head_commit.message, '[compile]') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # windows-2025 (= windows-latest): Windows 11 24H2 code base; windows-2022: the Windows 10 / 11 21H2 code base
+        os: [windows-2025, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        shell: pwsh
+        run: |
+          dotnet publish Hidamari -c Release -r win-x64 -o out/app -p:SkipStringsCheck=true
+          dotnet publish HidamariProbe -c Release -r win-x64 -o out/probe
+          dotnet build Check -c Release -o out/check
+          Get-Item out/app/*, out/probe/* | Format-Table Name, Length
+
+      - name: WebView2 runtime
+        shell: pwsh
+        run: ci/webview2.ps1
+
+      - name: Run the app and check it
+        shell: pwsh
+        env:
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || (contains(github.event.head_commit.message, '[full]') && 'full' || 'quick') }}
+        run: out/check/Check.exe app out/app/Hidamari.exe out/probe/HidamariProbe.exe results $env:MODE
+
+      - name: Collect journals
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force results/journals | Out-Null
+          Copy-Item "$env:LOCALAPPDATA\Hidamari\*.log" results/journals -ErrorAction SilentlyContinue
+          Copy-Item "$env:LOCALAPPDATA\HidamariProbe\probe.log" results/journals -ErrorAction SilentlyContinue
+          if (Test-Path results/report.md) { Get-Content results/report.md | Out-String | Add-Content $env:GITHUB_STEP_SUMMARY }
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: check-${{ matrix.os }}
+          path: results
+          retention-days: 5
+
+      - uses: actions/upload-artifact@v5
+        if: matrix.os == 'windows-2025'
+        with:
+          name: Hidamari-exe
+          path: out/app/Hidamari.exe
+          retention-days: 5

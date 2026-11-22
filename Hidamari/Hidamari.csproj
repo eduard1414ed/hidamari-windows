@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The wallpaper app with its card. The wall under the desktop icons on every screen, an icon in the tray that opens
+       the card. The picture (wall.html), the scene pictures, the grain and the fonts are the Mac app's own, kept in
+       ../shared exactly as the Mac app has them (see shared/README.md) and linked in at build time. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Hidamari</AssemblyName>
+    <RootNamespace>Hidamari</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <Version>0.1.0</Version>
+    <Product>Hidamari</Product>
+    <Company>Hidamari</Company>
+    <!-- lets the project build on any machine (the compile check runs on Linux), the app runs on Windows only -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <!-- One file to hand over: dotnet publish -c Release -r win-x64 (see README.md) -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
+    <!-- DirectComposition for the walls on the raised desktop (Compositor.cs) -->
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+    <PackageReference Include="Vortice.DirectComposition" Version="3.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\shared\wall.html" Link="wall.html" LogicalName="wall.html" />
+    <!-- tray icons, made from the Hidamari menu bar sign of the Mac app -->
+    <EmbeddedResource Include="Resources\tray-black.ico" LogicalName="tray-black.ico" />
+    <EmbeddedResource Include="Resources\tray-white.ico" LogicalName="tray-white.ico" />
+    <!-- the card (Card.cs): its page, and what the page uses -->
+    <EmbeddedResource Include="Card\card.html" LogicalName="card/card.html" />
+    <EmbeddedResource Include="Card\card.css" LogicalName="card/card.css" />
+    <EmbeddedResource Include="Card\card.js" LogicalName="card/card.js" />
+    <EmbeddedResource Include="..\shared\grain.png" Link="Card\grain.png" LogicalName="card/img/grain.png" />
+    <EmbeddedResource Include="..\shared\fonts\IBMPlexMono-Regular.ttf" Link="Card\IBMPlexMono-Regular.ttf" LogicalName="card/fonts/IBMPlexMono-Regular.ttf" />
+    <EmbeddedResource Include="..\shared\fonts\IBMPlexMono-Medium.ttf" Link="Card\IBMPlexMono-Medium.ttf" LogicalName="card/fonts/IBMPlexMono-Medium.ttf" />
+    <EmbeddedResource Include="..\shared\thumbs\*.jpg" Link="Card\thumbs\%(Filename)%(Extension)" LogicalName="card/img/thumbs/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- the texts must be the Mac app's (stops the build when one differs) -->
+  <Target Name="CheckStrings" BeforeTargets="BeforeBuild" Condition="'$(SkipStringsCheck)' != 'true'">
+    <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/../tools/check-strings.py&quot;" Condition="'$(OS)' != 'Windows_NT'" />
+    <Exec Command="python &quot;$(MSBuildProjectDirectory)\..\tools\check-strings.py&quot;" Condition="'$(OS)' == 'Windows_NT'" />
+  </Target>
+
+</Project>

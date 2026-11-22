@@ -1,0 +1,13 @@
+Copyright (c) 2026 Eduard Tsarionov. All rights reserved.
+
+The source code and the other files in this repository are published so that
+people can read them. Reading this repository grants no licence: you may not
+copy, modify, distribute, sublicense or sell this code or these files, in whole
+or in part, without written permission. The only exception is what GitHub's
+Terms of Service allow every user of GitHub (viewing and forking on GitHub).
+
+The name "Hidamari" and the Hidamari logo are not licensed for any use.
+
+Third-party parts keep their own licences:
+- IBM Plex Mono (shared/fonts/): SIL Open Font License 1.1, see
+  shared/fonts/OFL.txt.
