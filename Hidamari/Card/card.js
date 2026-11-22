@@ -28,11 +28,16 @@ let A = {
   scene: 0, wall: 0, custom: { L: 0.88, x: 0.5, y: 0.8, k: 0.1, rough: 1, shade: null }, plant: 2,
   follow: true, pinned: 720, weather: 'clear',
   screens: 'all', desktops: 'all', desktopsOffered: false, windowOnRight: false, login: false, firstAnswered: true,
-  shown: Date.now(), now: Date.now(), place: { name: 'Berlin', lat: 52.52, lng: 13.405, tz: 'Europe/Berlin' },
-  ownThumbs: 0, glass: 'plain', anchor: 'bottom', insets: { left: 0, top: 0, right: 0, bottom: 0 }, check: false, liveLook: 'dim',
+  shown: Date.now(), now: Date.now(), place: { name: 'Berlin', country: 'Germany', lat: 52.52, lng: 13.405, tz: 'Europe/Berlin' },
+  placeMode: 'automatic', locationUnavailable: false, live: true, locationButton: false,
+  credit: { where: 'bottom', weather: '', places: '' },
+  ownThumbs: 0, glass: 'plain', anchor: 'bottom', insets: { left: 0, top: 0, right: 0, bottom: 0 }, check: false,
 };
 /** What only the open card knows. */
 const ui = { dragging: false, pickerOpen: false, settingsOpen: false };
+/** The city search: what is typed, the lines the app found for it, the line Enter picks (0 the current location,
+ *  1… the cities, null none), and the number of the last letter sent, so older answers are dropped. */
+const search = { open: false, query: '', results: [], highlight: null, id: 0 };
 let firstState = true;
 
 // ---------- Time at the place (site/src/page.js) ----------
@@ -207,6 +212,9 @@ $('dial').setAttribute('aria-label', S.lightStrength);
 $('pad').setAttribute('aria-label', S.wallHandle);
 $('shadeOff').setAttribute('aria-label', S.defaultShade);
 $('shadeOn').setAttribute('aria-label', S.ownShade);
+$('searchBack').setAttribute('aria-label', S.back);
+$('searchInput').setAttribute('placeholder', S.searchCity);
+$('searchInput').setAttribute('aria-label', S.searchCity);
 
 /** Tells the app what was chosen; the card shows it at once, the app answers with the whole state. */
 function choose(change) {
@@ -266,11 +274,96 @@ $('followSwitch').addEventListener('click', () => {
   if (A.follow) choose({ follow: false, pinned: Math.round(moment().min) });
   else choose({ follow: true });
 });
-// Live weather: off until stage 3, a click does nothing
-$('liveSwitch').addEventListener('click', (e) => e.preventDefault());
+// Live weather: on, the weather of the place; off, the weather by hand
+$('liveSwitch').addEventListener('click', () => choose({ live: !A.live }));
+// where the weather and the cities come from: their pages in the browser
+$('credit').addEventListener('click', () => post({ type: 'openLink', to: 'met' }));
+$('creditsMet').addEventListener('click', () => post({ type: 'openLink', to: 'met' }));
+$('creditsGeo').addEventListener('click', () => post({ type: 'openLink', to: 'geonames' }));
+
+// ---------- The city search (PlaceSearch.swift) ----------
+const searchInput = $('searchInput'), searchRows = $('searchRows');
+const LOCATION_ARROW = '<path d="M12.6 1.4 1.6 6.2l4.8 1.4 1.4 4.8z"/>';
+$('place').addEventListener('click', () => openSearch());
+$('searchBack').addEventListener('click', () => closeSearch());
+function openSearch() {
+  if (ui.settingsOpen) return;
+  Object.assign(search, { open: true, query: '', results: [], highlight: null });
+  searchInput.value = '';
+  post({ type: 'searchOpen', open: true });
+  render();
+  searchInput.focus({ preventScroll: true });
+}
+function closeSearch(focusPlace = true) {
+  if (!search.open) return;
+  search.open = false;
+  post({ type: 'searchOpen', open: false });
+  render();
+  if (focusPlace) $('place').focus({ preventScroll: true });
+}
+searchInput.addEventListener('input', () => {
+  search.query = searchInput.value;
+  search.id++;
+  if (search.query.trim() === '') { search.results = []; search.highlight = null; renderRows(); return; }
+  post({ type: 'search', text: search.query, id: search.id });
+});
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); move(e.key === 'ArrowDown' ? 1 : -1); }
+  else if (e.key === 'Enter') { e.preventDefault(); pick(search.highlight); }
+});
+/** The arrow keys: through the current location and the cities. */
+function move(step) {
+  const count = 1 + search.results.length;
+  const from = search.highlight ?? (step > 0 ? -1 : count);
+  search.highlight = clamp(from + step, 0, count - 1);
+  renderRows();
+}
+function pick(line) {
+  if (line === null || line === undefined) return;
+  if (line === 0) post({ type: 'currentLocation' });
+  else if (search.results[line - 1]) {
+    const r = search.results[line - 1];
+    // the card shows the city at once; the app answers with its time and its sun
+    A.place = Object.assign({}, A.place, { name: r.title });
+    post({ type: 'choosePlace', index: r.index });
+  } else return;
+  closeSearch();
+}
+let rowsKey = '';
+function renderRows() {
+  const key = JSON.stringify([search.results, A.locationUnavailable && A.locationButton]);
+  if (key !== rowsKey) {
+    rowsKey = key;
+    searchRows.textContent = '';
+    const row = (i, title, subtitle, arrow) => {
+      const b = el('button', 'search-row', { type: 'button' });
+      const slotIcon = el('span', 'slot-icon');
+      if (arrow) slotIcon.appendChild(icon('0 0 14 14', 13, LOCATION_ARROW));
+      const t = el('span', 'title'); t.textContent = title;
+      b.append(slotIcon, t);
+      if (subtitle) { const s = el('span', 'subtitle'); s.textContent = subtitle; b.appendChild(s); }
+      b.setAttribute('aria-label', subtitle ? `${title}, ${subtitle}` : title);
+      b.addEventListener('click', () => pick(i));
+      // the pointer does not move the highlight: the keyboard's line stays where it was
+      b.addEventListener('pointerdown', (e) => e.preventDefault());
+      searchRows.appendChild(b);
+    };
+    row(0, S.currentLocation, null, true);
+    if (A.locationUnavailable && A.locationButton) {
+      const b = el('button', 'location-settings', { type: 'button' });
+      b.textContent = S.openLocationSettings;
+      b.addEventListener('click', () => post({ type: 'locationSettings' }));
+      searchRows.appendChild(b);
+    }
+    search.results.forEach((r, i) => row(i + 1, r.title, r.subtitle, false));
+  }
+  const rows = [...searchRows.querySelectorAll('.search-row')];
+  rows.forEach((b, i) => b.classList.toggle('lit', i === search.highlight));
+  if (search.highlight !== null && rows[search.highlight]) rows[search.highlight].scrollIntoView({ block: 'nearest' });
+}
 
 $('quit').addEventListener('click', () => post({ type: 'quit' }));
-$('gear').addEventListener('click', () => { ui.settingsOpen = true; post({ type: 'settings', open: true }); render(); $('settingsBack').focus({ preventScroll: true }); });
+$('gear').addEventListener('click', () => { closeSearch(false); ui.settingsOpen = true; post({ type: 'settings', open: true }); render(); $('settingsBack').focus({ preventScroll: true }); });
 $('settingsBack').addEventListener('click', () => closeSettings());
 function closeSettings() { ui.settingsOpen = false; post({ type: 'settings', open: false }); render(); }
 
@@ -472,8 +565,9 @@ function renderPicker() {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   e.preventDefault();
-  // the settings first, then the wall picker, then the card (Panel.swift)
-  if (ui.settingsOpen) closeSettings();
+  // the city search first, then the settings, then the wall picker, then the card (Panel.swift)
+  if (search.open) closeSearch();
+  else if (ui.settingsOpen) closeSettings();
   else if (ui.pickerOpen) { ui.pickerOpen = false; post({ type: 'picker', open: false }); render(); }
   else post({ type: 'close', why: 'Escape' });
 });
@@ -498,10 +592,8 @@ function render() {
   const ins = A.insets || {};
   Object.assign(slot.style, { left: (ins.left || 0) + 'px', right: (ins.right || 0) + 'px', top: A.anchor === 'top' ? (ins.top || 0) + 'px' : '', bottom: A.anchor === 'top' ? '' : (ins.bottom || 0) + 'px' });
   card.classList.toggle('shadow', A.glass !== 'acrylic');
-  card.classList.toggle('live-dim', A.liveLook === 'dim');
-  card.classList.toggle('live-none', A.liveLook === 'none');
 
-  const key = p.tz + '|' + p.lat + '|' + Math.round(t.midnight / 60000);
+  const key = p.tz + '|' + p.lat + '|' + p.lng + '|' + Math.round(t.midnight / 60000);
   if (key !== arcKey) {
     arcKey = key; arc = arcFor(t.midnight, p);
     attr($('horizon'), 'y1', arc.horizon.toFixed(1)); attr($('horizon'), 'y2', arc.horizon.toFixed(1));
@@ -529,8 +621,13 @@ function render() {
   if (inkNow !== sky.ink) { inkNow = sky.ink; post({ type: 'ink', dark: onDark }); }
 
   // the top of the card
-  text($('place'), p.name);
-  attr($('place'), 'aria-label', `${S.location}: ${p.name}`);
+  text($('placeName'), p.name || S.currentLocation);
+  attr($('place'), 'aria-label', `${S.location}: ${p.name || S.currentLocation}` + (A.placeMode === 'automatic' && A.locationUnavailable ? `, ${S.locationUnavailable}` : ''));
+  card.classList.toggle('searching', search.open);
+  $('search').hidden = !search.open;
+  attr($('top').querySelector('.top-left'), 'aria-hidden', search.open);
+  attr($('walls'), 'aria-hidden', search.open);
+  if (search.open) renderRows();
   text($('time'), hhmm(t.min));
   attr(arcBox, 'aria-valuenow', Math.floor(t.min));
   attr(arcBox, 'aria-valuetext', hhmm(t.min));
@@ -551,7 +648,14 @@ function render() {
   sceneButtons.forEach(({ b, img }, sc) => { attr(b, 'aria-pressed', sc === A.scene); b.classList.toggle('mirrored', !!A.windowOnRight && (sc === 1 || sc === 2)); const src = sceneThumb(sc); if (img.getAttribute('src') !== src) img.src = src; });
   plantButtons.forEach(({ b, img }, i) => { attr(b, 'aria-pressed', PLANTS[i] === A.plant); b.classList.toggle('mirrored', !!A.windowOnRight); const src = thumb(`plant-${PLANTS[i]}`); if (img.getAttribute('src') !== src) img.src = src; });
   attr($('followSwitch'), 'aria-checked', A.follow);
-  attr($('liveSwitch'), 'aria-checked', false);
+  attr($('liveSwitch'), 'aria-checked', !!A.live);
+  $('weather').classList.toggle('live', !!A.live);
+  // where the weather comes from, while it is live (A.credit.where: 'bottom', 'settings', 'both' or 'none')
+  const cr = A.credit || {}, crBottom = cr.where === 'bottom' || cr.where === 'both', crSettings = cr.where === 'settings' || cr.where === 'both';
+  text($('credit'), cr.weather || '');
+  $('credit').hidden = !(A.live && crBottom && !ui.settingsOpen && cr.weather);
+  text($('creditsMet'), cr.weather || ''); text($('creditsGeo'), cr.places || '');
+  $('credits').hidden = !crSettings; $('creditsLine').hidden = !crSettings;
   const offered = choices(A.scene), shown = shownWeather(A.scene);
   weatherButtons.forEach(({ slot: s, b }, i) => {
     const w = WEATHER[i];
@@ -613,7 +717,11 @@ let layoutTimer = 0;
 function layoutSoon() { clearTimeout(layoutTimer); layoutTimer = setTimeout(layout, 400); }
 function layout() {
   const r = (e) => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.width, b.height].map((v) => Math.round(v * 100) / 100); };
-  const out = { card: r(card), arc: r(arcBox), pad: r(pad), wave: r($('wave')), dial: r($('dial')), follow: r($('followSwitch')), live: r($('liveSwitch')),
+  const searchLines = [...searchRows.querySelectorAll('.search-row')];
+  const out = { card: r(card), arc: r(arcBox), pad: r(pad), place: r($('place')), searchBack: r($('searchBack')), searchInput: r(searchInput),
+    credit: $('credit').hidden ? null : r($('credit')), locationSettings: searchRows.querySelector('.location-settings') ? r(searchRows.querySelector('.location-settings')) : null,
+    search: { open: search.open, query: search.query, highlight: search.highlight, focused: document.activeElement === searchInput,
+      lines: searchLines.map((b) => ({ text: b.getAttribute('aria-label'), rect: r(b), lit: b.classList.contains('lit') })) }, wave: r($('wave')), dial: r($('dial')), follow: r($('followSwitch')), live: r($('liveSwitch')),
     gear: r($('gear')), quit: r($('quit')), back: r($('settingsBack')), login: r($('loginSwitch')),
     screensAll: r($('screensAll')), screensMain: r($('screensMain')), lightLeft: r($('lightLeft')), lightRight: r($('lightRight')), desktopsAll: r($('desktopsAll')), desktopsThis: r($('desktopsThis')),
     firstNotNow: r($('firstNotNow')), firstOpen: r($('firstOpen')), own: r(ownButton), shadeOn: r($('shadeOn')), shadeOff: r($('shadeOff')),
@@ -622,7 +730,8 @@ function layout() {
       mirroredScenes: sceneButtons.map(({ b }, i) => b.classList.contains('mirrored') ? i : -1).filter((i) => i >= 0).join(','),
       mirroredPlants: plantButtons.every(({ b }) => b.classList.contains('mirrored')), desktopsThis: A.desktops === 'thisOne',
       desktopsOffered: !!A.desktopsOffered, first: !A.firstAnswered, ink: inkNow, weather: shownWeather(A.scene),
-      scene: A.scene, wall: A.wall, plant: A.plant, ownThumbs: A.ownThumbs, liveLook: A.liveLook, glass: A.glass } };
+      scene: A.scene, wall: A.wall, plant: A.plant, ownThumbs: A.ownThumbs, glass: A.glass, live: !!A.live,
+      weatherIcons: !$('weather').classList.contains('live'), place: $('placeName').textContent, placeLabel: $('place').getAttribute('aria-label') } };
   sceneButtons.forEach(({ b }, i) => { out[`scene${i}`] = r(b); });
   plantButtons.forEach(({ b }, i) => { out[`plant${PLANTS[i]}`] = r(b); });
   wallButtons.forEach((b, i) => { out[`wall${i}`] = r(b); });
@@ -650,19 +759,28 @@ function onApp(m) {
     if (m.reset) {
       // the card opens anew: the settings and the picker closed, nothing animates into place
       ui.pickerOpen = false; ui.settingsOpen = false; ui.dragging = false; foldsInstant = true; padDrawn = '';
+      if (search.open) closeSearch(false);
     }
     // the hand wins while it drags: the app's word can be about an earlier place of the drag
     if (ui.dragging) { A.follow = hand.follow; A.pinned = hand.pinned; }
     if (was.place !== A.place.tz) arcKey = '';
     render();
     if (m.reset) requestAnimationFrame(() => requestAnimationFrame(() => post({ type: 'painted', id: m.id })));
+  } else if (m.type === 'found') {
+    // an answer for letters typed since is dropped: the newer one follows
+    if (!search.open || m.id !== search.id) return;
+    search.results = m.items || [];
+    // the first city is what Enter picks; with no cities, nothing is highlighted
+    search.highlight = search.results.length > 0 ? 1 : null;
+    renderRows();
+    if (A.check) layoutSoon();
   } else if (m.type === 'focus') {
     arcBox.blur();
   }
 }
 if (host) host.addEventListener('message', (e) => onApp(e.data));
 // for trying the page in a browser: ?demo shows it with the starting state
-if (!host || /[?&]demo\b/.test(location.search)) window.HidamariCard = { show: (s) => onApp({ type: 'state', state: s, reset: true, id: 0 }) };
+if (!host || /[?&]demo\b/.test(location.search)) window.HidamariCard = { show: (s) => onApp({ type: 'state', state: s, reset: true, id: 0 }), found: (items) => onApp({ type: 'found', id: search.id, items }) };
 document.fonts.ready.then(() => { padDrawn = ''; render(); post({ type: 'ready' }); });
 render();
 })();

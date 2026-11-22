@@ -45,6 +45,8 @@ static partial class Check
             Part("card placement", CardPlaces);
             Part("card pictures", CardShots);
             Part("card memory", CardMemory);
+            Part("place", PlaceRun);
+            Part("weather", WeatherRun);
             if (full) Part("memory", Variants);
             Part("session end", EndSession);
             Part("Task Manager", KillRun);

@@ -28,8 +28,8 @@
 
     <div class="top" id="top">
       <div class="top-left">
-        <!-- Berlin until stage 3: no arrow, no search, a click does nothing -->
-        <span class="place" id="place"></span>
+        <!-- the place with its small arrow: a click opens the city search (Panel.swift, TopRow) -->
+        <button type="button" class="place" id="place"><span id="placeName"></span><svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true" class="line-icon soft" stroke-width="1.8"><path d="M3 4.5 6 7.5l3-3"/></svg></button>
         <span class="time" id="time" aria-hidden="true"></span>
         <div class="arc" id="arc" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="1439">
           <svg width="236" height="112" viewBox="0 0 236 112" aria-hidden="true">
@@ -56,6 +56,15 @@
         </div>
       </div>
       <div class="walls" id="walls"></div>
+      <!-- the city search takes the place of the city, the time, the arc and the walls, exactly as tall as they are
+           (PlaceSearch.swift, design/panel/place-search.html, place-typing.html) -->
+      <div class="search" id="search" hidden>
+        <div class="search-head">
+          <button type="button" class="search-back" id="searchBack"><svg width="10" height="14" viewBox="0 0 10 14" aria-hidden="true" class="line-icon" stroke-width="1.7"><path d="M7 2 2 7l5 5"/></svg></button>
+          <label class="search-field"><svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true" class="line-icon soft" stroke-width="1.5"><path d="M10.3 6A4.3 4.3 0 1 1 1.7 6A4.3 4.3 0 1 1 10.3 6Z M9.3 9.3 12.5 12.5"/></svg><input id="searchInput" type="text" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <div class="search-rows" id="searchRows"></div>
+      </div>
     </div>
 
     <div class="film" id="film"></div>
@@ -88,8 +97,7 @@
         <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" class="line-icon" stroke-width="1.6"><path d="M5.2 14h7.6a3.2 3.2 0 0 0 .4-6.4A4.6 4.6 0 0 0 4.4 8.6 2.7 2.7 0 0 0 5.2 14z"/></svg>
         <span class="switch-title" id="liveTitle" aria-hidden="true"></span>
         <span class="weather" id="weather"></span>
-        <!-- live weather comes with stage 3: off, and it cannot be switched on yet -->
-        <button type="button" role="switch" class="switch" id="liveSwitch" aria-disabled="true"><span class="knob"></span></button>
+        <button type="button" role="switch" class="switch" id="liveSwitch"><span class="knob"></span></button>
       </div>
     </div>
   </div>
@@ -121,6 +129,12 @@
           <button type="button" class="half" id="lightRight"></button>
         </div>
       </div>
+      <!-- where the weather and the cities come from, one of the ways offered (card.js, A.credit.where) -->
+      <div class="line" id="creditsLine"></div>
+      <div class="credits" id="credits">
+        <button type="button" class="credit-link" id="creditsMet"></button>
+        <button type="button" class="credit-link" id="creditsGeo"></button>
+      </div>
       <div class="line" id="desktopsLine"></div>
       <div class="settings-group" id="desktopsGroup">
         <span class="caption" id="desktopsTitle"></span>
@@ -133,6 +147,8 @@
   </div>
 
   <div class="bottom" id="bottom">
+    <!-- while the weather is live: where it comes from, where the Mac has Apple's weather mark -->
+    <button type="button" class="credit" id="credit"></button>
     <button type="button" class="gear" id="gear">
       <svg width="11" height="11" viewBox="0 0 14 14" aria-hidden="true" class="line-icon soft" stroke-width="1.5"><path d="M13.12 5.50L13.12 8.50L11.29 8.92L11.39 8.68L12.39 10.27L10.27 12.39L8.68 11.39L8.92 11.29L8.50 13.12L5.50 13.12L5.08 11.29L5.32 11.39L3.73 12.39L1.61 10.27L2.61 8.68L2.71 8.92L0.88 8.50L0.88 5.50L2.71 5.08L2.61 5.32L1.61 3.73L3.73 1.61L5.32 2.61L5.08 2.71L5.50 0.88L8.50 0.88L8.92 2.71L8.68 2.61L10.27 1.61L12.39 3.73L11.39 5.32L11.29 5.08Z M9.1 7A2.1 2.1 0 1 1 4.9 7A2.1 2.1 0 1 1 9.1 7Z"/></svg>
     </button>

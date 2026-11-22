@@ -76,7 +76,6 @@ sealed class Card : IDisposable
     public Glass Glass { get; private set; }
     public bool IsOpen { get; private set; }
     public bool SettingsOpen { get; private set; }
-    public string LiveLook { get; set; } = "dim";
     public IntPtr Handle => window.Handle;
     /// Something was chosen on the card: (type, the message).
     public event Action<string, JsonElement>? Chosen;
@@ -232,7 +231,6 @@ sealed class Card : IDisposable
         s["anchor"] = place.Anchor;
         s["insets"] = new Dictionary<string, double> { ["left"] = place.InsetLeft, ["top"] = place.InsetTop, ["right"] = place.InsetRight, ["bottom"] = place.InsetBottom };
         s["check"] = check;
-        s["liveLook"] = LiveLook;
         try { core.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "state", state = s, reset, id })); }
         catch (Exception e) { Log.Write($"card: could not send the state ({e.Message})"); }
     }

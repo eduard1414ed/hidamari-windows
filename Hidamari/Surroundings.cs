@@ -199,6 +199,24 @@ sealed class Surroundings : IDisposable
         return cities;
     }
 
+    /// For the checks: does this computer know every time zone of the list (by its IANA name, or by its Windows name)?
+    public async Task<object> ZoneReport()
+    {
+        var list = await UseCities();
+        int direct = 0;
+        var viaWindows = new List<string>();
+        var unknown = new List<string>();
+        foreach (var z in list.TimeZones)
+        {
+            Zones.Lookup(z, out var how);
+            if (how == null) direct++;
+            else if (how.StartsWith("found as")) viaWindows.Add($"{z} {how}");
+            else unknown.Add(z);
+        }
+        LetCitiesGoSoon();
+        return new { total = list.TimeZones.Count, direct, viaWindows, unknown, local = Zones.LocalName() };
+    }
+
     void LetCitiesGoSoon() { letCitiesGo.Stop(); letCitiesGo.Start(); }
 
     /// Two minutes after the search closed (or the place was named) the list goes: about 25 MB nobody needs.

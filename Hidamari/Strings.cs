@@ -29,12 +29,22 @@ static class Strings
     public const string LightFrom = "Light from";
     public const string LightLeft = "Left";
     public const string LightRight = "Right";
+    /// the city search: its first line goes back to finding the place by itself
+    public const string CurrentLocation = "Current Location";
+    public const string SearchCity = "Search for a city";
+    /// TEMP: one of the ways offered when Windows does not give the place: a button to Windows' location settings
+    public const string OpenLocationSettings = "Open location settings";
+    /// TEMP: where the live weather comes from (MET Norway asks for it), at the bottom left of the card or in the settings
+    public const string CreditWeather = "Data from MET Norway";
+    /// TEMP: where the list of cities comes from (GeoNames asks for it), in the settings
+    public const string CreditPlaces = "Places from GeoNames";
 
     // ---------- only heard with a screen reader ----------
     public const string TimeOfDay = "Time of day";
     public static readonly Dictionary<int, string> Plants = new() { [0] = "Bush", [2] = "Branch", [5] = "Palm" };
     public static readonly string[] Walls = { "Beige", "Grey-blue", "Mint", "Taupe", "Umber", "Clay" };
     public const string Location = "Location";
+    public const string LocationUnavailable = "Location unavailable";
     public const string Back = "Back";
     public const string Settings = "Settings";
     public const string WeatherClear = "Clear";

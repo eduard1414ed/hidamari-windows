@@ -28,6 +28,24 @@ static class Native
     // the union's largest member is MOUSEINPUT on 64-bit Windows, so the struct has the right size with it alone
     [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public MOUSEINPUT mi; }
     [DllImport("user32.dll", SetLastError = true)] static extern uint SendInput(uint count, INPUT[] inputs, int size);
+    // a key of the keyboard in the same 40-byte INPUT (type, then the union at 8)
+    [StructLayout(LayoutKind.Explicit, Size = 40)] struct KEYINPUT
+    {
+        [FieldOffset(0)] public uint type; [FieldOffset(8)] public ushort vk; [FieldOffset(10)] public ushort scan;
+        [FieldOffset(12)] public uint flags; [FieldOffset(16)] public uint time; [FieldOffset(24)] public IntPtr extra;
+    }
+    [DllImport("user32.dll", SetLastError = true, EntryPoint = "SendInput")] static extern uint SendKeys(uint count, KEYINPUT[] inputs, int size);
+
+    /// Types `text` letter by letter as a keyboard would (any language: the letters themselves, not keys), 80 ms apart.
+    public static void Type(string text)
+    {
+        foreach (var ch in text)
+        {
+            var e = new[] { new KEYINPUT { type = 1, scan = ch, flags = 0x4 }, new KEYINPUT { type = 1, scan = ch, flags = 0x4 | 0x2 } };
+            SendKeys(2, e, 40);
+            Thread.Sleep(80);
+        }
+    }
     [DllImport("user32.dll")] static extern void keybd_event(byte vk, byte scan, uint flags, IntPtr extra);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder sb, int max);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder sb, int max);
@@ -100,7 +118,8 @@ static class Native
         SendInput((uint)e.Length, e, Marshal.SizeOf<INPUT>());
     }
 
-    public const byte VK_LWIN = 0x5B, VK_CONTROL = 0x11, VK_F4 = 0x73, VK_ESCAPE = 0x1B, VK_LEFT = 0x25, VK_RIGHT = 0x27;
+    public const byte VK_LWIN = 0x5B, VK_CONTROL = 0x11, VK_F4 = 0x73, VK_ESCAPE = 0x1B, VK_LEFT = 0x25, VK_RIGHT = 0x27,
+        VK_UP = 0x26, VK_DOWN = 0x28, VK_RETURN = 0x0D;
 
     /// The left button pressed at `p` and held (a drag follows with MoveTo, then Up).
     public static void Down(Point p) { SetCursorPos(p.X, p.Y); Thread.Sleep(100); mouse_event(0x2u, 0, 0, 0, IntPtr.Zero); }

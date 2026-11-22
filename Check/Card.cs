@@ -39,7 +39,7 @@ static partial class Check
 
     sealed record Layout(Rectangle Window, Rectangle Card, double Scale, bool Open, bool Settings, bool Picker, JsonElement Rects, JsonElement Checked, DateTime At)
     {
-        public bool Has(string name) => Rects.TryGetProperty(name, out var r) && r[2].GetDouble() > 0 && r[3].GetDouble() > 0;
+        public bool Has(string name) => Rects.TryGetProperty(name, out var r) && r.ValueKind == JsonValueKind.Array && r[2].GetDouble() > 0 && r[3].GetDouble() > 0;
 
         /// The middle of control `name` on the screen, in pixels (or at fx, fy inside it).
         public Point At_(string name, double fx = 0.5, double fy = 0.5)
@@ -166,6 +166,10 @@ static partial class Check
             ["custom"] = new Dictionary<string, object?> { ["L"] = 0.88, ["x"] = 0.5, ["y"] = 0.8, ["k"] = 0.1, ["rough"] = 1.0, ["shade"] = null },
             ["plant"] = 2, ["followsSun"] = true, ["pinnedMinutes"] = 720.0, ["manualWeather"] = "clear",
             ["screens"] = "all", ["firstLaunchAnswered"] = true,
+            // the checks of stage 2 as they were: Berlin chosen, the weather by hand (the place and the live weather
+            // have checks of their own, PlaceWeather.cs)
+            ["liveWeather"] = false, ["placeMode"] = "chosen",
+            ["chosenPlace"] = new Dictionary<string, object?> { ["name"] = "Berlin", ["country"] = "Germany", ["lat"] = 52.52, ["lng"] = 13.405, ["tz"] = "Europe/Berlin" },
         };
         foreach (var (k, v) in s) all[k] = v;
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
@@ -453,14 +457,24 @@ static partial class Check
             $"{dbl ?? "nothing"}; after it: {(after.Count == 0 ? "no other change" : string.Join(" / ", after))}; " +
             $"journal: {string.Join(" / ", run.Lines().Where(x => x.Contains("double click")).TakeLast(2))}");
 
-        // Live weather stays off
+        // Live weather on: the icons go, the source's name comes; off: the icons again (CardParts.swift)
         l = LayoutAfter(run, DateTime.UtcNow.AddSeconds(-3)) ?? l;
         if (l!.Has("live"))
         {
             run.Mark();
-            Native.Click(l.At_("live"));
-            Thread.Sleep(1500);
-            Result(g, "Live weather cannot be switched on yet", run.Since_("settings:").Count == 0 && run.Since_("frame ").Count == 0, "no change, no frame");
+            var on = ClickCard(run, l, "live", until: x => x.Is("live")) ?? l;
+            var said = run.Next("settings: Live weather on", TimeSpan.FromSeconds(10));
+            var asked = run.Next("weather: test source for ", TimeSpan.FromSeconds(20));
+            Result(g, "Live weather on: asked at once, the icons hidden, the source named at the bottom",
+                on.Is("live") && !on.Is("weatherIcons") && on.Has("credit") && said != null && asked != null,
+                $"journal: {said ?? "no change"} / {asked ?? "nothing asked"}; icons {(on.Is("weatherIcons") ? "shown" : "hidden")}, credit {(on.Has("credit") ? "shown" : "not shown")}");
+            Pictures.Crop(Pictures.Shot(null), on.Window, "card/live-weather-on.png");
+            run.Mark();
+            var off = ClickCard(run, on, "live", until: x => !x.Is("live")) ?? on;
+            var offSaid = run.Next("settings: Live weather off", TimeSpan.FromSeconds(10));
+            Result(g, "Live weather off: the icons again, no credit", !off.Is("live") && off.Is("weatherIcons") && !off.Has("credit") && offSaid != null,
+                $"journal: {offSaid ?? "no change"}; icons {(off.Is("weatherIcons") ? "shown" : "hidden")}");
+            l = off;
         }
 
         // ---- the own-wall picker
@@ -902,13 +916,19 @@ static partial class Check
                 { Shot($"glass-{glass}-{when}", h, m); Command(run, new { @do = "close" }); }
             }
             Command(run, new { @do = "glass", glass = "plain" });
-            // the switched-off Live weather, three looks side by side
-            foreach (var look in new[] { "dim", "plain", "none" })
+            // where the weather comes from: the ways and the words offered (TEMP), with Live weather on
+            Command(run, new { @do = "choose", type = "set", change = new { live = true } });
+            var words = new[] { ("a", "Data from MET Norway", "Places from GeoNames"), ("b", "Weather: MET Norway", "Cities: GeoNames"), ("c", "MET Norway", "GeoNames") };
+            foreach (var (k, weather, places) in words)
             {
-                Command(run, new { @do = "live", look });
-                Shot($"live-weather-{look}", 12, 10); Command(run, new { @do = "close" });
+                Command(run, new { @do = "credit", where = "bottom", weather, places });
+                Shot($"credit-bottom-{k}", 12, 10); Command(run, new { @do = "close" });
+                Shot($"credit-bottom-{k}-night", 22, 40); Command(run, new { @do = "close" });
             }
-            Command(run, new { @do = "live", look = "dim" });
+            Command(run, new { @do = "credit", where = "settings" });
+            Shot("credit-settings", 12, 10, l => Native.Click(l.At_("gear")), x => x.Settings); Command(run, new { @do = "close" });
+            Command(run, new { @do = "credit", where = "bottom" });
+            Command(run, new { @do = "choose", type = "set", change = new { live = false } });
             // the settings last: turning Launch at login on makes Windows show a notice in the corner a while later,
             // over the pictures after it
             Command(run, new { @do = "choose", type = "login", on = true });
@@ -977,6 +997,15 @@ static partial class Check
                     drag.Join();
                     row["dragFrames"] = run.Lines().Skip(dragFrom).Count(x => x.Contains("(the sun is dragged)"));
                 }
+                // a city looked for, as a person would: the list is read now, and let go two minutes after
+                var lay2 = ReadLayout(run);
+                if (lay2 != null && OpenSearch(run, lay2) != null)
+                {
+                    TypeCity(run, "san", "San");
+                    row["searching"] = run.Usage(TimeSpan.FromSeconds(5));
+                    Esc();
+                    Thread.Sleep(1000);
+                }
                 Esc();
                 run.Next("card: closed", TimeSpan.FromSeconds(5));
                 Thread.Sleep(3000);
@@ -985,6 +1014,7 @@ static partial class Check
                 {
                     Thread.Sleep(TimeSpan.FromMinutes(10));
                     row["tenMinutes"] = run.Usage(TimeSpan.FromSeconds(20));
+                    row["citiesLetGo"] = run.Lines().Any(x => x.Contains("place: the list of places let go"));
                 }
             }
             finally

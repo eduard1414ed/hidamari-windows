@@ -44,6 +44,10 @@ sealed class App : ApplicationContext
     DateTime lastSelect;
     // check mode only: the app's clock runs this far from the real one, for the card's pictures at given times
     TimeSpan clockShift;
+    // where the card says where the weather and the cities come from, and in which words: not decided yet, so the
+    // check can show each way (TEMP)
+    object credit = new { where = "bottom", weather = Strings.CreditWeather, places = Strings.CreditPlaces };
+    bool locationButton;
     public int ExitCode { get; private set; }
 
     /// Chosen from the measurements on GitHub's machines: the engine is put to
@@ -448,6 +452,8 @@ sealed class App : ApplicationContext
             ["placeMode"] = settings.PlaceMode,
             ["locationUnavailable"] = around.LocationUnavailable,
             ["live"] = settings.LiveWeather,
+            ["credit"] = credit,
+            ["locationButton"] = locationButton,
             ["ownThumbs"] = ownThumbs,
         };
     }
@@ -520,6 +526,15 @@ sealed class App : ApplicationContext
             case "currentLocation":
                 around.ChooseCurrent();
                 break;
+            case "openLink":
+            {
+                var to = m.GetProperty("to").GetString();
+                var url = to == "geonames" ? "https://www.geonames.org/" : "https://api.met.no/doc/License";
+                Log.Write($"card: {url} opened");
+                try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+                catch (Exception e) { Log.Write($"card: could not open {url} ({e.Message})"); }
+                break;
+            }
             case "locationSettings":
                 Log.Write("card: Windows' location settings opened");
                 Locator.OpenSettings();
@@ -733,7 +748,16 @@ sealed class App : ApplicationContext
                     card.Close("check: another glass");
                     card.SetGlass(Enum.Parse<Glass>(c.GetProperty("glass").GetString()!, true));
                     break;
-                case "live": card.LiveLook = c.GetProperty("look").GetString() ?? "dim"; card.Push(); break;
+                case "credit":
+                    credit = new
+                    {
+                        where = c.GetProperty("where").GetString(),
+                        weather = c.TryGetProperty("weather", out var cw) ? cw.GetString() : Strings.CreditWeather,
+                        places = c.TryGetProperty("places", out var cp) ? cp.GetString() : Strings.CreditPlaces,
+                    };
+                    card.Push();
+                    break;
+                case "locationButton": locationButton = c.GetProperty("on").GetBoolean(); card.Push(); break;
                 case "choose": OnChosen(c.GetProperty("type").GetString()!, c); break;
                 case "push": card.Push(); break;
                 case "weather":
@@ -742,13 +766,15 @@ sealed class App : ApplicationContext
                     if (c.TryGetProperty("offline", out var off) && off.GetBoolean()) t.GoOffline();
                     else t.Set(new WeatherNow(c.GetProperty("cloud").GetDouble(), Enum.Parse<WeatherKind>(c.GetProperty("kind").GetString()!, true),
                         c.TryGetProperty("wind", out var wi) ? wi.GetDouble() : null));
-                    around.Ask("check: new test weather", scheduled: true);
+                    // "ask": false only changes what the source will say next time
+                    if (!c.TryGetProperty("ask", out var ask) || ask.GetBoolean()) around.Ask("check: new test weather", scheduled: true);
                     break;
                 }
                 case "fix":
                     _ = around.Take(new Locator.Fix(Locator.Outcome.Located, c.GetProperty("lat").GetDouble(), c.GetProperty("lng").GetDouble(), 100, "given by the check"), "check");
                     break;
                 case "locate": _ = around.Locate("check"); break;
+                case "zones": _ = Zones_(); break;
                 case "measure": measure.Write(c.TryGetProperty("why", out var why) ? why.GetString() ?? "check" : "check"); break;
                 default: throw new InvalidDataException($"unknown command {what}");
             }
@@ -757,6 +783,12 @@ sealed class App : ApplicationContext
         catch (Exception e) { reply = e.Message; Log.Write($"check: command failed ({e.Message})"); }
         try { File.WriteAllText(Path.Combine(checkFolder!, "command-reply.json"), JsonSerializer.Serialize(new { id, reply, open = card.IsOpen, lastOpenMs = card.LastOpenMs, asked = around.Asked, located = around.Located?.ToString(), place = settings.Place.ForPage(), placeMode = settings.PlaceMode })); }
         catch { }
+    }
+
+    async Task Zones_()
+    {
+        try { File.WriteAllText(Path.Combine(checkFolder!, "zones.json"), JsonSerializer.Serialize(await around.ZoneReport(), new JsonSerializerOptions { WriteIndented = true })); }
+        catch (Exception e) { Log.Write($"check: zones failed ({e.Message})"); }
     }
 
     // ---------- news from Windows (Messages) ----------
