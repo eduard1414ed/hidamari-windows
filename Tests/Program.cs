@@ -218,7 +218,7 @@ static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
             ("weather", new double[] { u.Weather }, A("weather")), ("t", new[] { u.T }, A("t")), ("wind", new[] { u.Wind }, A("wind")),
             ("windLeaves", new[] { u.WindLeaves }, A("windLeaves")), ("sunDegrees", new[] { u.SunDegrees }, A("sunDegrees")),
         };
-        bool bad = s.GetProperty("mirror").GetBoolean() != u.Mirror || s.GetProperty("plant").GetString()!.ToLowerInvariant() != u.Plant.ToString().ToLowerInvariant();
+        bool bad = s.GetProperty("mirror").GetBoolean() != u.Mirror || s.GetProperty("plant").GetString()!.Replace("(", "").Replace(")", "").ToLowerInvariant() != u.Plant.ToString().ToLowerInvariant();   // Swift: photo(5)
         foreach (var (name, cs, swift) in pairs)
         {
             if (cs.Length != swift.Length) { bad = true; continue; }
