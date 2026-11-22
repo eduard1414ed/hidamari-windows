@@ -9,3 +9,4 @@ Files the Windows app shares with the Mac app. The master copies live in the Mac
 | `thumbs/` | the scene and plant pictures of the card |
 | `grain.png` | the card's grain |
 | `fonts/` | IBM Plex Mono with its licence (`OFL.txt`) |
+| `textures/` | the pictures the Direct3D drawing reads (crowns, plants, frost): the Mac app's Metal textures, the same bytes, repacked from LZFSE into gzip |
