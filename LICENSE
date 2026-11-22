@@ -11,3 +11,5 @@ The name "Hidamari" and the Hidamari logo are not licensed for any use.
 Third-party parts keep their own licences:
 - IBM Plex Mono (shared/fonts/): SIL Open Font License 1.1, see
   shared/fonts/OFL.txt.
+- The list of cities (Hidamari/Resources/cities.gz, made by tools/make-cities.py):
+  GeoNames, https://www.geonames.org, Creative Commons Attribution 4.0.

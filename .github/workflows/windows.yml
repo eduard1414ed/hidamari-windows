@@ -41,6 +41,15 @@ jobs:
           dotnet build Hidamari -c Release -p:SkipStringsCheck=true
           dotnet build HidamariProbe -c Release
           dotnet build Check -c Release
+      # the city search, time zones, MET's forecast and the weather's rules need no Windows (Tests/Program.cs)
+      - name: Checks without Windows
+        run: dotnet run --project Tests -c Release -- results-linux
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: check-linux
+          path: results-linux
+          retention-days: 5
 
   check:
     needs: compile

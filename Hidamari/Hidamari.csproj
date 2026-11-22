@@ -44,6 +44,8 @@
     <!-- tray icons, made from the Hidamari menu bar sign of the Mac app -->
     <EmbeddedResource Include="Resources\tray-black.ico" LogicalName="tray-black.ico" />
     <EmbeddedResource Include="Resources\tray-white.ico" LogicalName="tray-white.ico" />
+    <!-- the place search's own list of cities, from GeoNames (tools/make-cities.py) -->
+    <EmbeddedResource Include="Resources\cities.gz" LogicalName="cities.gz" />
     <!-- the card (Card.cs): its page, and what the page uses -->
     <EmbeddedResource Include="Card\card.html" LogicalName="card/card.html" />
     <EmbeddedResource Include="Card\card.css" LogicalName="card/card.css" />

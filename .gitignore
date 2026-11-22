@@ -4,3 +4,4 @@ out/
 results/
 .vs/
 .DS_Store
+build/
