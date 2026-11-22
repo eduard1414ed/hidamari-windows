@@ -61,7 +61,10 @@ static partial class Check
         try
         {
             // ---- what Windows says on this machine
-            var said = run.Next(x => x.Contains("place: located (launch") || x.Contains("place: not located (launch"), TimeSpan.FromSeconds(60));
+            // written before or after the first frame: looked for in the whole journal
+            string? said = null;
+            for (var sw0 = Stopwatch.StartNew(); said == null && sw0.Elapsed < TimeSpan.FromSeconds(60); Thread.Sleep(500))
+                said = run.Lines().FirstOrDefault(x => x.Contains("place: located (launch") || x.Contains("place: not located (launch"));
             facts["locationOnThisMachine"] = said;
             bool located = said?.Contains("place: located") == true;
             var st = WallState(run)?.GetProperty("state");
@@ -97,22 +100,22 @@ static partial class Check
                 open == null ? "not open" : $"open, typing goes to the field: {focused}; first line {Lines_(open)}");
             if (open == null) return;
             Pictures.Crop(Pictures.Shot(null), open.Window, "card/search-empty.png");
-            var typed = TypeCity(run, "munchen", "Munich");
-            Result(g, "typing munchen finds Munich first, without the accent, and highlights it", typed != null && Highlight(typed) == 1,
+            var typed = TypeCity(run, "munchen", "München");
+            Result(g, "typing munchen finds München first, without the accent, shown by the name typed, highlighted", typed != null && Highlight(typed) == 1,
                 $"lines: {Lines_(typed ?? ReadLayout(run))}");
             if (typed == null) { Esc(); return; }
             Pictures.Crop(Pictures.Shot(null), typed.Window, "card/search-typing.png");
             run.Mark();
             Native.Click(LineAt(typed, 1));
-            var chosen = run.Next("settings: place chosen: Munich", TimeSpan.FromSeconds(10));
+            var chosen = run.Next("settings: place chosen: München", TimeSpan.FromSeconds(10));
             st = FrameFor(run, "a place was chosen");
             var after = LayoutAfter(run, DateTime.UtcNow.AddSeconds(-1), x => !SearchOpen(x)) ?? ReadLayout(run);
-            Result(g, "a click on Munich: the wall's sun is Munich's, the card says Munich, the search closes",
-                chosen != null && Math.Abs(Num(st, "lat") - 48.14) < 0.05 && Math.Abs(Num(st, "lng") - 11.58) < 0.05 && after != null && !SearchOpen(after) && after.Str("place") == "Munich",
+            Result(g, "a click on München: the wall's sun is Munich's, the card says München, the search closes",
+                chosen != null && Math.Abs(Num(st, "lat") - 48.14) < 0.05 && Math.Abs(Num(st, "lng") - 11.58) < 0.05 && after != null && !SearchOpen(after) && after.Str("place") == "München",
                 $"journal: {chosen ?? "nothing"}; wall {StateText(st)}; card {after?.Str("place")}");
             KeepForMac(run, "place-munich");
             // the weather is asked for the new place (more than 20 km from Berlin)
-            Result(g, "a new place: the weather is asked for it", run.Since_("weather: test source for Munich").Count > 0 || run.Next("weather: test source for Munich", TimeSpan.FromSeconds(10)) != null,
+            Result(g, "a new place: the weather is asked for it", run.Lines().Any(x => x.Contains("weather: test source for München")),
                 string.Join(" / ", run.Lines().Where(x => x.Contains("weather: test source for")).TakeLast(1)));
             l = after ?? l;
 
@@ -267,7 +270,7 @@ static partial class Check
         try
         {
             // ---- at launch: asked once; the point in the journal to one decimal
-            var first = run.Next("weather: test source for Berlin (Germany) 52.5, 13.4", TimeSpan.FromSeconds(30));
+            var first = run.Lines().FirstOrDefault(x => x.Contains("weather: test source for Berlin (Germany) 52.5, 13.4") && x.Contains("(launch)"));
             var exact = run.Lines().Where(x => x.Contains("weather:") && x.Contains("52.52")).ToList();
             Result(g, "at launch the weather is asked once; the journal has the place to one decimal only", first != null && exact.Count == 0,
                 $"{first ?? "not asked"}{(exact.Count > 0 ? $"; but: {exact[0]}" : "")}");

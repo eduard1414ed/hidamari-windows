@@ -174,6 +174,8 @@ static partial class Check
         foreach (var (k, v) in s) all[k] = v;
         Directory.CreateDirectory(Path.GetDirectoryName(SettingsFile)!);
         File.WriteAllText(SettingsFile, JsonSerializer.Serialize(all));
+        // no weather kept from an earlier run: each run asks anew at launch
+        try { File.Delete(Path.Combine(Path.GetDirectoryName(SettingsFile)!, "weather.json")); } catch { }
     }
 
     static string? RunEntry() { using var k = Registry.CurrentUser.OpenSubKey(RunKey); return k?.GetValue("Hidamari") as string; }
@@ -608,6 +610,8 @@ static partial class Check
         // the small pictures, seen on the card
         Command(run, new { @do = "choose", type = "set", change = new Dictionary<string, object> { ["scene"] = 1 } });
         run.Next("frame ", TimeSpan.FromSeconds(120));
+        // the window scene opens the plants' row: the card is taller now, the back arrow elsewhere
+        l = SettledLayout(run) ?? l;
         l = ClickCard(run, l, "back", until: x => !x.Settings) ?? l;
         Thread.Sleep(1200);
         l = ReadLayout(run) ?? l;

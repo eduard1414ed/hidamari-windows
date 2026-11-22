@@ -88,7 +88,9 @@ sealed class Surroundings : IDisposable
         lastLocate = DateTime.UtcNow;
         try
         {
-            var ask = Locator.Locate();
+            // away from the card's thread: the first question to Windows can take half a minute (seen on GitHub's
+            // machines), and on the card's thread it would freeze the card for that long
+            var ask = Task.Run(Locator.Locate);
             // Windows gives up after 30 seconds itself; this only keeps a stuck service from holding the place for ever
             var first = await Task.WhenAny(ask, Task.Delay(TimeSpan.FromSeconds(45)));
             var fix = first == ask ? ask.Result : new Locator.Fix(Locator.Outcome.Failed, 0, 0, 0, "no answer from Windows in 45 seconds");
@@ -137,7 +139,8 @@ sealed class Surroundings : IDisposable
     public void Choose(int index)
     {
         if (index < 0 || index >= found.Count) return;
-        var p = found[index].Place;
+        // named as it was shown and picked: München when München was typed
+        var p = found[index].Place with { Name = found[index].Title };
         settings.ChosenPlace = p;
         settings.PlaceMode = "chosen";
         changed($"place chosen: {p.ForJournal}");
