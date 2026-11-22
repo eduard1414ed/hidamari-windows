@@ -22,6 +22,9 @@ sealed class App : ApplicationContext
     readonly Surroundings around;
     readonly System.Windows.Forms.Timer saveSoon = new() { Interval = 400 };
     readonly System.Windows.Forms.Timer thumbsSoon = new() { Interval = 500 };
+    /// The first launch: the place is asked of Windows only once the card's own question has gone (or after 5 minutes).
+    readonly System.Windows.Forms.Timer placeLater = new() { Interval = 5 * 60 * 1000 };
+    bool aroundStarted;
     readonly System.Windows.Forms.Timer tick = new();
     readonly System.Windows.Forms.Timer screensSoon = new() { Interval = 1500 };
     readonly System.Windows.Forms.Timer lookSoon = new() { Interval = 1000 };
@@ -66,7 +69,7 @@ sealed class App : ApplicationContext
         engine.SharedWith = () => card.EngineRunning;
         card.Chosen += (type, m) => { try { OnChosen(type, m); } catch (Exception e) { Log.Write($"error: card {type}: {e}"); } };
         card.Opened += () => { wakeWanted = true; Kick(); around.OnCardOpened(); };
-        card.Closed += _ => { dragging = false; restWanted = true; Kick(); };
+        card.Closed += _ => { dragging = false; restWanted = true; Kick(); StartAround("the first launch's card closed"); };
         card.Layout += SaveLayout;
         // Settings → Desktops (All / This one) is not offered: Windows does not tell an app which virtual desktop its windows are on
         ownThumbs = File.Exists(Path.Combine(Card.ThumbsFolder, "dapples.jpg")) ? 1 : 0;
@@ -95,7 +98,25 @@ sealed class App : ApplicationContext
         }
         tray.Add("start");
         ui.Post(_ => WantRebuild("start"), null);
-        ui.Post(_ => around.Start(), null);
+        // Windows 11 asks the person itself whether the app may know the place, over everything and until answered; a
+        // click on its answer is a click outside the card, which closes the card. So at the first launch the question of
+        // the card comes first, and Windows is asked once the card has closed.
+        if (firstLaunch && !settings.FirstLaunchAnswered)
+        {
+            Log.Write("place: Windows will be asked once the first launch's card has closed (its own question would cover the card)");
+            placeLater.Tick += (_, _) => StartAround("5 minutes after the first launch");
+            placeLater.Start();
+        }
+        else ui.Post(_ => StartAround("start"), null);
+    }
+
+    void StartAround(string why)
+    {
+        if (aroundStarted) return;
+        aroundStarted = true;
+        placeLater.Stop();
+        if (why != "start") Log.Write($"place: asking Windows now ({why})");
+        around.Start();
     }
 
     void Wait(EventWaitHandle ev, Action then) =>

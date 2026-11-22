@@ -204,21 +204,12 @@ static partial class Check
         const string g = "card: first launch";
         var opened = run.Next("card: opened (first launch)", TimeSpan.FromSeconds(30));
         var openedAt = DateTime.UtcNow.AddSeconds(-5);
-        // Windows 11 asks itself whether the app may know the place, over everything, the screen dimmed, and the
-        // question stays until answered: a picture of it for the sheet, then "No", as a careful person would (the rest
-        // of the run goes the "location unavailable" way, as on these machines anyway)
-        Thread.Sleep(2000);
-        Pictures.Shot("card/windows-asks-location.png");
-        facts["windowsLocationQuestion"] = Desk.AnswerLocationQuestion("No", TimeSpan.FromSeconds(8));
-        Say($"Windows' question about the place: {facts["windowsLocationQuestion"]}");
-        for (var sw = Stopwatch.StartNew(); sw.Elapsed < TimeSpan.FromSeconds(60)
-             && !run.Lines().Any(x => x.Contains("place: located (launch") || x.Contains("place: not located (launch")); ) Thread.Sleep(500);
+        var deferred = run.Lines().FirstOrDefault(x => x.Contains("place: Windows will be asked once the first launch's card has closed"));
         Thread.Sleep(1500);
-        facts["locationAtFirstLaunch"] = run.Lines().FirstOrDefault(x => x.Contains("(launch)") && x.Contains("place:"));
         var l = opened != null ? LayoutAfter(run, openedAt, x => x.Open) : null;
         Result(g, "on a clean machine the card opens by itself with the question", opened != null && l != null && l.Is("first") && CardSeen(),
             $"journal: {opened ?? "no open"}; question shown: {l?.Is("first")}");
-        if (l == null) { Command(run, new { @do = "close" }); return; }
+        if (l == null) { Command(run, new { @do = "close" }); AnswerWindows(); return; }
         Pictures.Crop(Pictures.Shot(null), l.Window, "card/first-launch-real.png");
         var after = ClickCard(run, l, "firstNotNow", until: x => !x.Is("first"));
         var said = run.Next("settings: first launch answered: Not now", TimeSpan.FromSeconds(5));
@@ -227,7 +218,25 @@ static partial class Check
         Esc();
         var closed = run.Next("card: closed (Escape)", TimeSpan.FromSeconds(5));
         Result(g, "Escape closes the card", closed != null && WaitSeen(false), closed ?? "not closed");
-        Thread.Sleep(1500);
+        AnswerWindows();
+
+        void AnswerWindows()
+        {
+            // only now Windows is asked for the place; Windows 11 asks the person itself, over everything, the screen
+            // dimmed, until answered: a picture of it for the sheet, then "No", as a careful person would (the rest of the
+            // run goes the "location unavailable" way, as on these machines anyway)
+            var asked = run.Next("place: asking Windows now (the first launch's card closed)", TimeSpan.FromSeconds(5));
+            Result(g, "the place is asked of Windows only after the first launch's card has closed (Windows' own question would cover it)",
+                deferred != null && asked != null, $"journal: {deferred ?? "asked at once"}; then: {asked ?? "nothing"}");
+            Thread.Sleep(2000);
+            Pictures.Shot("card/windows-asks-location.png");
+            facts["windowsLocationQuestion"] = Desk.AnswerLocationQuestion("No", TimeSpan.FromSeconds(8));
+            Say($"Windows' question about the place: {facts["windowsLocationQuestion"]}");
+            for (var sw = Stopwatch.StartNew(); sw.Elapsed < TimeSpan.FromSeconds(60)
+                 && !run.Lines().Any(x => x.Contains("place: located (launch") || x.Contains("place: not located (launch")); ) Thread.Sleep(500);
+            facts["locationAtFirstLaunch"] = run.Lines().FirstOrDefault(x => x.Contains("(launch)") && x.Contains("place:"));
+            Thread.Sleep(1500);
+        }
     }
 
     static void SecondStart(Run run)
