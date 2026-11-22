@@ -99,6 +99,14 @@
         <span class="weather" id="weather"></span>
         <button type="button" role="switch" class="switch" id="liveSwitch"><span class="knob"></span></button>
       </div>
+      <!-- Animation: only at the scenes that move; the card changes its height with it (design/panel/animation-switch) -->
+      <div class="fold" id="animationFold"><div class="fold-inner" id="animationInner">
+        <div class="switch-row">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" class="line-icon" stroke-width="1.4"><path d="M1.5 6h8.2a2.1 2.1 0 1 0-2.1-2.1M1.5 9.4h11a2.1 2.1 0 1 1-2.1 2.1M1.5 12.6h4.6"/></svg>
+          <span class="switch-title" id="animationTitle" aria-hidden="true"></span>
+          <button type="button" role="switch" class="switch" id="animationSwitch"><span class="knob"></span></button>
+        </div>
+      </div></div>
     </div>
   </div>
 

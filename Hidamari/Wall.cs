@@ -26,6 +26,29 @@ static class Wall
         return start.AddMinutes(s.PinnedMinutes);
     }
 
+    /// The same moment for the Direct3D drawing (what wall.html's renderNow() works out from the argument of
+    /// komorebi.render()); the frame's size is each screen's own. Read from `page`, so both drawings get one state.
+    public static WallFrameInput Input(Dictionary<string, object?> page)
+    {
+        static double D(object? o, double or = 0) => o == null ? or : Convert.ToDouble(o, System.Globalization.CultureInfo.InvariantCulture);
+        object? V(Dictionary<string, object?> d, string k) => d.TryGetValue(k, out var v) ? v : null;
+        double ms = D(V(page, "time"));
+        var custom = V(page, "custom") is Dictionary<string, object?> c
+            ? new CustomWall(D(V(c, "L"), 0.88), D(V(c, "x"), 0.5), D(V(c, "y"), 0.8), D(V(c, "k"), 0.1), D(V(c, "rough"), 1),
+                V(c, "shade") is Dictionary<string, object?> sh ? (D(V(sh, "x")), D(V(sh, "y"))) : null)
+            : CustomWall.Standard;
+        var motion = Motion.Still;
+        if (V(page, "motion") is Dictionary<string, object?> m) motion = new Motion(D(V(m, "t")), D(V(m, "wind")), D(V(m, "windLeaves")));
+        return new WallFrameInput
+        {
+            Ms = ms, Minutes = WallFrameInput.MinutesOf(ms, D(V(page, "utcOffset"))),
+            Lat = D(V(page, "lat"), 52.52), Lng = D(V(page, "lng"), 13.405),
+            Scene = (int)D(V(page, "scene")), Wall = (int)D(V(page, "wall")), Custom = custom, WinPlant = (int)D(V(page, "plant"), 2),
+            Cloud = D(V(page, "cloud")), Weather = (int)D(V(page, "weather")), Mirror = V(page, "mirror") is true,
+            Motion = motion,
+        };
+    }
+
     /// The argument of komorebi.render(), see the comment above renderNow() in wall.html. `weather` is the live
     /// weather or the one chosen by hand, as it is; here it is drawn for the scene.
     public static Dictionary<string, object?> State(DateTimeOffset now, Settings s, WeatherNow weather)

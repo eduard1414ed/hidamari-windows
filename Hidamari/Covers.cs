@@ -13,6 +13,7 @@ sealed class Covers : IDisposable
     readonly System.Windows.Forms.Timer settle = new() { Interval = 400 };
     readonly WinEventProc proc;
     readonly List<IntPtr> hooks = new();
+    readonly HashSet<string> listeners = new();
 
     public Covers(Action changed)
     {
@@ -54,8 +55,52 @@ sealed class Covers : IDisposable
         try { using var p = Process.GetProcessById((int)pid); return p.ProcessName; } catch { return $"pid {pid}"; }
     }
 
-    /// Listens to other windows while `on` (a wall waits to be seen again).
-    public void Listen(bool on)
+    /// What hides the whole of `screen`'s wall from the motion's point of view, or null when some of it can be seen:
+    /// every opaque window over it together, the taskbar too (the motion only runs where someone can see it). A
+    /// maximised window leaves only the taskbar's strip, and the taskbar is not see-through: hidden.
+    public string? Hidden(ScreenInfo screen)
+    {
+        var area = screen.Bounds;
+        var left = CreateRectRgn(area.Left, area.Top, area.Right, area.Bottom);
+        var names = new List<string>();
+        bool all = false;
+        try
+        {
+            EnumWindows((h, _) =>
+            {
+                if (!IsWindowVisible(h) || IsIconic(h) || Cloaked(h)) return true;
+                GetWindowThreadProcessId(h, out uint pid);
+                if (pid == myPid) return true;
+                var cls = ClassOf(h);
+                if (cls is "Progman" or "WorkerW") return true;
+                long ex = ExStyle(h);
+                if ((ex & WS_EX_TRANSPARENT) != 0) return true;
+                if ((ex & WS_EX_LAYERED) != 0 && (!GetLayeredWindowAttributes(h, out uint key, out byte alpha, out uint flags)
+                                                  || (flags & LWA_COLORKEY) != 0 || ((flags & LWA_ALPHA) != 0 && alpha < 255))) return true;
+                var r = Bounds(h);
+                if (r.Right <= area.Left || r.Left >= area.Right || r.Bottom <= area.Top || r.Top >= area.Bottom) return true;
+                var cut = CreateRectRgn(r.Left, r.Top, r.Right, r.Bottom);
+                int kind = CombineRgn(left, left, cut, RGN_DIFF);
+                DeleteObject(cut);
+                if (names.Count < 3) names.Add(cls is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" ? "the taskbar" : $"{cls} \"{TitleOf(h)}\" ({Exe(pid)})");
+                if (kind == NULLREGION) { all = true; return false; }
+                return true;
+            }, IntPtr.Zero);
+        }
+        finally { DeleteObject(left); }
+        return all ? string.Join(" + ", names) : null;
+    }
+
+    /// Listens to other windows while someone wants it: a wall waits to be seen again ("stale"), or the motion
+    /// would run if its wall could be seen ("motion").
+    public void Listen(string who, bool on)
+    {
+        if (on) listeners.Add(who); else listeners.Remove(who);
+        Listen(listeners.Count > 0);
+    }
+
+    /// Listens to other windows while `on`.
+    void Listen(bool on)
     {
         if (on == hooks.Count > 0) return;
         if (on)
@@ -83,5 +128,5 @@ sealed class Covers : IDisposable
         settle.Start();
     }
 
-    public void Dispose() => Listen(false);
+    public void Dispose() { listeners.Clear(); Listen(false); }
 }

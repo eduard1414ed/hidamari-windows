@@ -3,26 +3,6 @@ using System.Text.Json.Nodes;
 
 namespace Hidamari;
 
-/// The person's own wall, as the prototype keeps it: lightness, the place on the picker's field, an own shade colour
-/// or none, the strength of light (0–1) and the texture (0–2). The texture is used for every wall.
-sealed record CustomWall(double L, double X, double Y, double K, double Rough, (double X, double Y)? Shade)
-{
-    /// The prototype's starting own wall (CustomWall.standard on the Mac).
-    public static readonly CustomWall Standard = new(0.88, 0.5, 0.8, 0.1, 1.0, null);
-
-    public Dictionary<string, object?> ForPage() => new()
-    {
-        ["L"] = L, ["x"] = X, ["y"] = Y, ["k"] = K, ["rough"] = Rough,
-        ["shade"] = Shade is { } s ? new Dictionary<string, object?> { ["x"] = s.X, ["y"] = s.Y } : null,
-    };
-
-    /// Kept within the prototype's ranges (wall.html, setWall).
-    public CustomWall Clamped() => new(Unit(L), Unit(X), Unit(Y), Unit(K), Math.Clamp(double.IsFinite(Rough) ? Rough : 1, 0, 2),
-        Shade is { } s ? (Unit(s.X), Unit(s.Y)) : null);
-
-    static double Unit(double v) => double.IsFinite(v) ? Math.Clamp(v, 0, 1) : 0.5;
-}
-
 /// Everything the person chose, kept in %LOCALAPPDATA%\Hidamari\settings.json. The same choices as on the Mac
 /// (AppSettings.swift, WeatherModel, SettingsView.swift), with the same defaults on a first launch.
 ///
@@ -60,6 +40,13 @@ sealed class Settings
     /// Live weather (WeatherModel.isOn on the Mac): on at the first launch, as on the Mac. Stage 2 could not switch it
     /// on, so a stage 2 file says nothing about it: missing is on.
     public bool LiveWeather = true;
+    /// Animation (the Mac's update 1.1): the dapples and the water move. Off at the first launch (Ed, 22 November 2026);
+    /// the files of stage 3 say nothing about it: missing is off.
+    public bool Animates;
+    /// Which drawing the walls use: "direct3d" (the graphics card, the default) or "web" (the web engine of stages 1–3).
+    /// Hidden: no switch on the card, as RendererChoice on the Mac. Set by starting the app with HIDAMARI_RENDERER=web
+    /// (or direct3d), which is remembered.
+    public string Renderer = "direct3d";
 
     /// The place the wall shows now.
     public Place Place => PlaceMode == "chosen" && ChosenPlace != null ? ChosenPlace : AutoPlace ?? Place.Berlin;
@@ -68,6 +55,7 @@ sealed class Settings
 
     public static readonly string[] Weathers = { "clear", "cloudy", "rain", "frost" };
     public static readonly int[] PlantChoices = { 0, 2, 5 };
+    public static readonly string[] Renderers = { "direct3d", "web" };
 
     /// Reads the file. Missing: a first launch, all defaults.
     public static Settings Load(out bool firstLaunch)
@@ -120,6 +108,8 @@ sealed class Settings
         s.Screens = GetString("screens", new[] { "all", "main" }) ?? s.Screens;
         s.FirstLaunchAnswered = Get("firstLaunchAnswered", n => (bool?)n.GetValue<bool>()) ?? true;
         if (obj.ContainsKey("windowOnRight")) s.WindowOnRight = Get("windowOnRight", n => (bool?)n.GetValue<bool>()) ?? false;
+        if (obj.ContainsKey("animation")) s.Animates = Get("animation", n => (bool?)n.GetValue<bool>()) ?? false;
+        if (obj.ContainsKey("renderer")) s.Renderer = GetString("renderer", Renderers) ?? "direct3d";
         if (obj.ContainsKey("liveWeather")) s.LiveWeather = Get("liveWeather", n => (bool?)n.GetValue<bool>()) ?? true;
         if (obj.ContainsKey("placeMode")) s.PlaceMode = GetString("placeMode", new[] { "automatic", "chosen" }) ?? "automatic";
         if (obj.ContainsKey("chosenPlace")) s.ChosenPlace = ReadPlace(obj["chosenPlace"], "chosenPlace", problems);
@@ -174,7 +164,7 @@ sealed class Settings
                 ["scene"] = Scene, ["wall"] = Wall, ["custom"] = Custom.ForPage(), ["plant"] = Plant,
                 ["followsSun"] = FollowsSun, ["pinnedMinutes"] = PinnedMinutes, ["manualWeather"] = ManualWeather,
                 ["screens"] = Screens, ["windowOnRight"] = WindowOnRight,
-                ["liveWeather"] = LiveWeather, ["placeMode"] = PlaceMode,
+                ["liveWeather"] = LiveWeather, ["animation"] = Animates, ["renderer"] = Renderer, ["placeMode"] = PlaceMode,
                 ["chosenPlace"] = ChosenPlace?.ForPage(), ["autoPlace"] = AutoPlace?.ForPage(),
                 ["firstLaunchAnswered"] = FirstLaunchAnswered,
             }, new JsonSerializerOptions { WriteIndented = true });
@@ -188,7 +178,7 @@ sealed class Settings
     public string Describe() =>
         $"scene {Scene}, wall {Wall}, own wall L {Custom.L:F3} x {Custom.X:F3} y {Custom.Y:F3} k {Custom.K:F3} texture {Custom.Rough:F2} " +
         $"shade {(Custom.Shade is { } s ? $"{s.X:F3},{s.Y:F3}" : "none")}, plant {Plant}, live sun {(FollowsSun ? "on" : $"off at {Clock(PinnedMinutes)}")}, " +
-        $"weather by hand {ManualWeather}, screens {Screens}, light from {(WindowOnRight ? "right" : "left")}, live weather {(LiveWeather ? "on" : "off")}, place {PlaceMode} ({Place.ForJournal}), first launch answered {FirstLaunchAnswered}";
+        $"weather by hand {ManualWeather}, screens {Screens}, light from {(WindowOnRight ? "right" : "left")}, live weather {(LiveWeather ? "on" : "off")}, animation {(Animates ? "on" : "off")}, drawing {Renderer}, place {PlaceMode} ({Place.ForJournal}), first launch answered {FirstLaunchAnswered}";
 
     public static string Clock(double minutes)
     {

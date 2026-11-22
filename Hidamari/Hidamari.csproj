@@ -36,13 +36,16 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
-    <!-- DirectComposition for the walls on the raised desktop (Compositor.cs) -->
+    <!-- Direct3D for the wall's drawing (Wall/D3DWall.cs), DirectComposition to show it (and for the web frames on the raised desktop) -->
     <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
     <PackageReference Include="Vortice.DirectComposition" Version="3.8.3" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="..\shared\wall.html" Link="wall.html" LogicalName="wall.html" />
+    <!-- the Direct3D drawing (stage 4): the shader, and the Mac's Metal textures as they are (shared/textures) -->
+    <EmbeddedResource Include="Wall\wall.hlsl" LogicalName="wall.hlsl" />
+    <EmbeddedResource Include="..\shared\textures\*.htex.gz" Link="Wall\textures\%(Filename)%(Extension)" LogicalName="textures/%(Filename)%(Extension)" />
     <!-- tray icons, made from the Hidamari menu bar sign of the Mac app -->
     <EmbeddedResource Include="Resources\tray-black.ico" LogicalName="tray-black.ico" />
     <EmbeddedResource Include="Resources\tray-white.ico" LogicalName="tray-white.ico" />

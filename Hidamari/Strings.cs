@@ -12,6 +12,8 @@ static class Strings
     public const string FollowSun = "Live sun";
     public static readonly string[] Scenes = { "Dapples", "Window", "Blinds", "Water" };
     public const string LiveWeather = "Live weather";
+    /// the third switch, only at the scenes that move (dapples, water): the live motion (the Mac's update 1.1)
+    public const string Animation = "Animation";
     /// The button at the bottom of the card and the tray menu's only item.
     public const string Quit = "Quit";
 

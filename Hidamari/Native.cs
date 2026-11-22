@@ -348,4 +348,9 @@ static class Native
     [DllImport("gdi32.dll")] public static extern IntPtr CreateRoundRectRgn(int l, int t, int r, int b, int w, int h);
     [DllImport("user32.dll")] public static extern int SetWindowRgn(IntPtr hwnd, IntPtr rgn, bool redraw);
     public const uint EVENT_OBJECT_CLOAKED = 0x8017;
+    // what of a screen other windows leave uncovered (Covers.Hidden)
+    [DllImport("gdi32.dll")] public static extern IntPtr CreateRectRgn(int l, int t, int r, int b);
+    [DllImport("gdi32.dll")] public static extern int CombineRgn(IntPtr dest, IntPtr a, IntPtr b, int mode);
+    public const int RGN_DIFF = 4, NULLREGION = 1, ERROR_REGION = 0;
+    public const int SM_REMOTESESSION = 0x1000;
 }

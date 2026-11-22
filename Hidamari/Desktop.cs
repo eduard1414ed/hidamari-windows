@@ -97,12 +97,13 @@ sealed class Desktop
     }
 
     /// Makes `hwnd` a child of the layer under the icons, covering `screen` (pixels, screen coordinates), still hidden.
-    public bool Attach(IntPtr hwnd, Rectangle screen)
+    /// `composed`: the wall shows its picture through DirectComposition (always with Direct3D, on both desktops).
+    public bool Attach(IntPtr hwnd, Rectangle screen, bool composed)
     {
         var style = Style(hwnd) & ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_VISIBLE) | WS_CHILD;
         SetStyle(hwnd, style);
         var ex = ExStyle(hwnd) & ~WS_EX_APPWINDOW | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
-        if (Composed)
+        if (composed)
         {
             // as Microsoft described it to Lively and as the probe did: layered, fully opaque, before SetParent
             // (Lively notes some windows refuse it afterwards). The picture itself is a composition visual on top.

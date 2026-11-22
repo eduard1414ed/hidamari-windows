@@ -14,6 +14,8 @@ sealed class Measure : IDisposable
     bool gpuReady;
     DateTime lastAt = DateTime.UtcNow;
     double lastCpu;
+    /// What else the line tells: which drawing, the motion (App).
+    public Func<string>? Extra;
 
     public Measure()
     {
@@ -97,7 +99,7 @@ sealed class Measure : IDisposable
         Log.Write($"measure ({why}): memory {ws / 1048576} MB (own {priv / 1048576} MB) in {pids.Count} processes " +
                   $"[{string.Join(", ", names.GroupBy(n => n).Select(g => g.Count() > 1 ? $"{g.Key}×{g.Count()}" : g.Key))}], " +
                   $"processor {core:F2} % of one core ({core / Environment.ProcessorCount:F2} % of all) over {secs / 60:F1} min, " +
-                  $"processor time since start {cpu:F1} s, {gpu}");
+                  $"processor time since start {cpu:F1} s, {gpu}{(Extra != null ? "; " + Extra() : "")}");
     }
 
     /// The graphics card's load caused by the app over the same span, and its memory there.

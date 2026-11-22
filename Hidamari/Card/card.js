@@ -29,7 +29,7 @@ let A = {
   follow: true, pinned: 720, weather: 'clear',
   screens: 'all', desktops: 'all', desktopsOffered: false, windowOnRight: false, login: false, firstAnswered: true,
   shown: Date.now(), now: Date.now(), place: { name: 'Berlin', country: 'Germany', lat: 52.52, lng: 13.405, tz: 'Europe/Berlin' },
-  placeMode: 'automatic', locationUnavailable: false, live: true,
+  placeMode: 'automatic', locationUnavailable: false, live: true, animation: false,
   ownThumbs: 0, glass: 'plain', anchor: 'bottom', insets: { left: 0, top: 0, right: 0, bottom: 0 }, check: false,
 };
 /** What only the open card knows. */
@@ -183,8 +183,10 @@ const halfText = (b, t) => { const s = el('span'); s.textContent = t; b.textCont
 
 $('followTitle').textContent = S.followSun;
 $('liveTitle').textContent = S.liveWeather;
+$('animationTitle').textContent = S.animation;
 $('followSwitch').setAttribute('aria-label', S.followSun);
 $('liveSwitch').setAttribute('aria-label', S.liveWeather);
+$('animationSwitch').setAttribute('aria-label', S.animation);
 arcBox.setAttribute('aria-label', S.timeOfDay);
 $('quit').textContent = S.quit;
 $('gear').setAttribute('aria-label', S.settings);
@@ -275,6 +277,8 @@ $('followSwitch').addEventListener('click', () => {
 });
 // Live weather: on, the weather of the place; off, the weather by hand
 $('liveSwitch').addEventListener('click', () => choose({ live: !A.live }));
+// Animation: the dapples and the water move (the Mac's update 1.1); off by default
+$('animationSwitch').addEventListener('click', () => choose({ animation: !A.animation }));
 // where the weather and the cities come from: their pages in the browser
 $('creditsMet').addEventListener('click', () => post({ type: 'openLink', to: 'met' }));
 $('creditsGeo').addEventListener('click', () => post({ type: 'openLink', to: 'geonames' }));
@@ -581,6 +585,7 @@ const sunG = $('sun'), sunCore = $('sunCore'), realSun = $('realSun'), drop = $(
 const folds = [
   { outer: $('firstFold'), inner: $('first'), open: () => !A.firstAnswered },
   { outer: $('plantsFold'), inner: $('plants'), open: () => A.scene === 1 },
+  { outer: $('animationFold'), inner: $('animationInner'), open: () => A.scene === 0 || A.scene === 3 },
   { outer: $('pickerFold'), inner: $('picker'), open: () => ui.pickerOpen },
 ];
 
@@ -648,6 +653,8 @@ function render() {
   plantButtons.forEach(({ b, img }, i) => { attr(b, 'aria-pressed', PLANTS[i] === A.plant); b.classList.toggle('mirrored', !!A.windowOnRight); const src = thumb(`plant-${PLANTS[i]}`); if (img.getAttribute('src') !== src) img.src = src; });
   attr($('followSwitch'), 'aria-checked', A.follow);
   attr($('liveSwitch'), 'aria-checked', !!A.live);
+  attr($('animationSwitch'), 'aria-checked', !!A.animation);
+  attr($('animationSwitch'), 'tabindex', A.scene === 0 || A.scene === 3 ? 0 : -1);
   $('weather').classList.toggle('live', !!A.live);
   // where the weather and the cities come from: the last line of the settings
   text($('creditsMet'), S.creditWeather); text($('creditsGeo'), S.creditPlaces);
@@ -716,7 +723,7 @@ function layout() {
   const out = { card: r(card), arc: r(arcBox), pad: r(pad), place: r($('place')), searchBack: r($('searchBack')), searchInput: r(searchInput),
     creditsMet: r($('creditsMet')), creditsGeo: r($('creditsGeo')), locationSettings: searchRows.querySelector('.location-settings') ? r(searchRows.querySelector('.location-settings')) : null,
     search: { open: search.open, query: search.query, highlight: search.highlight, focused: document.activeElement === searchInput,
-      lines: searchLines.map((b) => ({ text: b.getAttribute('aria-label'), rect: r(b), lit: b.classList.contains('lit') })) }, wave: r($('wave')), dial: r($('dial')), follow: r($('followSwitch')), live: r($('liveSwitch')),
+      lines: searchLines.map((b) => ({ text: b.getAttribute('aria-label'), rect: r(b), lit: b.classList.contains('lit') })) }, wave: r($('wave')), dial: r($('dial')), follow: r($('followSwitch')), live: r($('liveSwitch')), animation: r($('animationSwitch')),
     gear: r($('gear')), quit: r($('quit')), back: r($('settingsBack')), login: r($('loginSwitch')),
     screensAll: r($('screensAll')), screensMain: r($('screensMain')), lightLeft: r($('lightLeft')), lightRight: r($('lightRight')), desktopsAll: r($('desktopsAll')), desktopsThis: r($('desktopsThis')),
     firstNotNow: r($('firstNotNow')), firstOpen: r($('firstOpen')), own: r(ownButton), shadeOn: r($('shadeOn')), shadeOff: r($('shadeOff')),
@@ -725,7 +732,8 @@ function layout() {
       mirroredScenes: sceneButtons.map(({ b }, i) => b.classList.contains('mirrored') ? i : -1).filter((i) => i >= 0).join(','),
       mirroredPlants: plantButtons.every(({ b }) => b.classList.contains('mirrored')), desktopsThis: A.desktops === 'thisOne',
       desktopsOffered: !!A.desktopsOffered, first: !A.firstAnswered, ink: inkNow, weather: shownWeather(A.scene),
-      scene: A.scene, wall: A.wall, plant: A.plant, ownThumbs: A.ownThumbs, glass: A.glass, live: !!A.live,
+      scene: A.scene, wall: A.wall, plant: A.plant, ownThumbs: A.ownThumbs, glass: A.glass, live: !!A.live, animation: !!A.animation,
+      animationRow: $('animationFold').classList.contains('open') ? $('animationFold').getBoundingClientRect().height : 0,
       weatherIcons: !$('weather').classList.contains('live'), place: $('placeName').textContent, placeLabel: $('place').getAttribute('aria-label') } };
   sceneButtons.forEach(({ b }, i) => { out[`scene${i}`] = r(b); });
   plantButtons.forEach(({ b }, i) => { out[`plant${PLANTS[i]}`] = r(b); });

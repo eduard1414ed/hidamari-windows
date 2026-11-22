@@ -14,6 +14,10 @@ sealed class App : ApplicationContext
     readonly Messages messages;
     readonly Tray tray;
     readonly Engine engine;
+    /// The walls' drawing: Direct3D (default) or the web engine (Settings.Renderer, or after Direct3D gave up).
+    IWallRenderer renderer;
+    D3DRenderer? d3d;
+    Animator? animator;
     readonly Covers covers;
     readonly Measure measure = new();
     readonly Settings settings;
@@ -41,6 +45,11 @@ sealed class App : ApplicationContext
     string signature = "", timeZone = TimeZoneInfo.Local.Id, screensWhy = "";
     string? drawWanted, rebuildWanted;
     bool drawStaleOnly, running, stopping, locked, displayOff, asleep, thumbsWanted, restWanted, wakeWanted, dragging;
+    /// The console has no user of this session (another user, or a Remote Desktop session that went away).
+    bool sessionAway;
+    /// For the checks: pretend a Remote Desktop session (true), pretend none (false), or the real one (null).
+    bool? remotePretend;
+    readonly System.Windows.Forms.Timer motionLook = new() { Interval = 2000 };
     int frames, batches, ownThumbs;
     // the moment of the last frame on the main screen: the card shows that moment (AppModel.frameShown on the Mac)
     DateTimeOffset? shownMoment;
@@ -61,6 +70,14 @@ sealed class App : ApplicationContext
         engine = new Engine(policy, Path.Combine(Log.Folder, "web"));
         if (checkFolder != null) Engine.PageTimeout = TimeSpan.FromSeconds(120);
         settings = Settings.Load(out firstLaunch);
+        // HIDAMARI_RENDERER=web (or direct3d) at the start is remembered, as on the Mac (RendererChoice)
+        if (Environment.GetEnvironmentVariable("HIDAMARI_RENDERER") is { } asked && Hidamari.Settings.Renderers.Contains(asked) && asked != settings.Renderer)
+        {
+            settings.Renderer = asked;
+            settings.Save();
+            Log.Write($"settings: drawing {asked} (asked for at the start)");
+        }
+        renderer = MakeRenderer(settings.Renderer, "start");
         around = new Surroundings(settings, Now, why => WantDraw(why), Changed, () => { if (card.IsOpen) card.Push(); }, checkFolder != null);
         LoginItem.FollowMove();
         messages = new Messages(this);
@@ -74,8 +91,11 @@ sealed class App : ApplicationContext
         // Settings → Desktops (All / This one) is not offered: Windows does not tell an app which virtual desktop its windows are on
         ownThumbs = File.Exists(Path.Combine(Card.ThumbsFolder, "dapples.jpg")) ? 1 : 0;
         if (settings.Wall == Hidamari.Settings.OwnWall && ownThumbs == 0) thumbsWanted = true;
-        covers = new Covers(() => WantDraw("a wall can be seen again", staleOnly: true));
-        Log.Write($"app: web engine between frames: {policy}{(checkFolder != null ? $", check mode ({checkPng} frames saved)" : "")}");
+        covers = new Covers(() => { WantDraw("a wall can be seen again", staleOnly: true); UpdateMotion("windows moved"); });
+        measure.Extra = () => $"drawing {renderer.Describe}" + (animator != null ? $"; animation {(settings.Animates ? "on" : "off")}, {animator.Fps} frames a second ({animator.FpsWhy}): {animator.Summary()}" : "");
+        motionLook.Tick += (_, _) => UpdateMotion("a look every 2 s");
+        Log.Write($"app: drawing {renderer.Describe}; web engine between frames: {policy}{(checkFolder != null ? $", check mode ({checkPng} frames saved)" : "")}" +
+                  $"; Remote Desktop session: {(GetSystemMetrics(SM_REMOTESESSION) != 0 ? "yes" : "no")}");
         var screens = Screens.All();
         Measure.Machine(screens);
 
@@ -108,6 +128,51 @@ sealed class App : ApplicationContext
             placeLater.Start();
         }
         else ui.Post(_ => StartAround("start"), null);
+    }
+
+    /// Direct3D unless the web engine was asked for; the web engine when Direct3D cannot draw on this machine.
+    IWallRenderer MakeRenderer(string choice, string why)
+    {
+        if (choice == "direct3d")
+        {
+            var r = D3DRenderer.TryMake(out var fail);
+            if (r != null)
+            {
+                d3d = r;
+                r.GaveUp += reason => ui.Post(_ => FallBack(reason), null);
+                animator = new Animator(r, ui);
+                animator.StillWanted += (w, reason) => { w.Stale = true; WantDraw(reason, staleOnly: true); };
+                return r;
+            }
+            Log.Write($"d3d: cannot draw here ({fail}); the web engine draws ({why})");
+        }
+        return new WebRenderer(engine);
+    }
+
+    /// Direct3D failed again and again: the walls are made anew with the web engine. Written in the journal.
+    void FallBack(string why)
+    {
+        if (stopping || renderer is WebRenderer) return;
+        Log.Write($"d3d: gave up ({why}); the walls go on with the web engine until the app starts again");
+        animator?.End(); animator = null;
+        foreach (var w in walls) renderer.Forget(w);
+        var old = d3d; d3d = null;
+        renderer = new WebRenderer(engine);
+        motionLook.Stop();
+        covers.Listen("motion", false);
+        try { old?.Dispose(); } catch (Exception e) { Log.Write($"d3d: {e.Message}"); }
+        WantRebuild($"Direct3D gave up: {why}");
+    }
+
+    /// A different drawing (the checks; the hidden setting).
+    void SwitchRenderer(string choice, string why)
+    {
+        animator?.End(); animator = null;
+        foreach (var w in walls) renderer.Forget(w);
+        renderer.Dispose(); d3d = null;
+        renderer = MakeRenderer(choice, why);
+        Log.Write($"app: drawing now {renderer.Describe} ({why})");
+        WantRebuild(why);
     }
 
     void StartAround(string why)
@@ -202,8 +267,10 @@ sealed class App : ApplicationContext
         if (!found)
         {
             Log.Write("build: no desktop to put the walls under; waiting for Explorer");
+            foreach (var w in walls) renderer.Forget(w);
             Drop(walls, "no desktop");
             walls = new();
+            animator?.SetWalls(walls);
             Schedule();
             return;
         }
@@ -211,14 +278,16 @@ sealed class App : ApplicationContext
         var fresh = new List<WallWindow>();
         foreach (var s in screens)
         {
-            var w = new WallWindow(s) { Composed = desktop.Composed };
+            var w = new WallWindow(s) { Composed = desktop.Composed || renderer.ComposesEverywhere };
             w.Lost += OnLost;
-            if (!desktop.Attach(w.Handle, s.Bounds)) { w.Dispose(); continue; }
+            if (!desktop.Attach(w.Handle, s.Bounds, w.Composed)) { w.Dispose(); continue; }
             fresh.Add(w);
         }
         walls = fresh;
         paused.Clear();
+        animator?.SetWalls(fresh);
         await Draw(why, staleOnly: false);
+        foreach (var w in old) renderer.Forget(w);
         Drop(old, "replaced");
         Log.Write($"desktop: Progman children, top first: {desktop.ChildOrder()}");
     }
@@ -312,13 +381,18 @@ sealed class App : ApplicationContext
             }
             targets.Add(w);
         }
-        covers.Listen(walls.Any(w => w.Stale && paused.TryGetValue(w.Screen.Name, out var p) && p.why.StartsWith("covered")));
-        if (targets.Count == 0) { Schedule(); return; }
-
+        covers.Listen("stale", walls.Any(w => w.Stale && paused.TryGetValue(w.Screen.Name, out var p) && p.why.StartsWith("covered")));
         var now = Now();
         var place = settings.Place;
         var weather = around.ForWall(settings.Scene);
         var state = Wall.State(now, settings, weather);
+        var both = new WallState(state, Wall.Input(state));
+        // a new scene starts its own motion; the motion goes on from this state (the sun moved, a choice), with this
+        // wind (MET's, or 4 m/s)
+        animator?.Scene(settings.Scene);
+        animator?.SetBase(both, WindNow(weather));
+        if (targets.Count == 0) { Schedule(); UpdateMotion($"no frame for: {why}"); return; }
+
         var moment = Wall.Moment(now, settings);
         var local = TimeZoneInfo.ConvertTime(moment, place.TimeZone);
         var total = Stopwatch.StartNew();
@@ -327,12 +401,15 @@ sealed class App : ApplicationContext
         int drawn = 0;
         try
         {
-            startMs = await engine.Begin();
+            startMs = await renderer.Begin();
             foreach (var w in targets)
             {
                 if (stopping || !walls.Contains(w)) continue;
                 bool png = checkFolder != null && (checkPng == "all" || (checkPng == "first" && frames == 0));
-                var r = await engine.Draw(w.Screen, state, w, png);
+                // a moving wall gets the still frame at the motion it shows (nothing jumps)
+                var shows = animator?.Held(w) ?? MotionFrame.Still;
+                var mine = shows.IsStill ? both : both with { Input = both.Input with { Motion = shows.Mix >= 0.5 || shows.From == null ? shows.Motion : shows.From.Value } };
+                var r = await renderer.Draw(w, mine, png);
                 if (stopping) return;
                 if (!w.Shown) { desktop.Show(w.Handle, w.Screen.Bounds); w.Shown = true; }
                 w.Stale = false;
@@ -347,7 +424,7 @@ sealed class App : ApplicationContext
                 Log.Write($"frame {frames} ({why}) on {w.Screen.Short}: {place.Name} {local:yyyy-MM-dd HH:mm:ss}{(settings.FollowsSun ? "" : " (Live sun off)")}, utcOffset {state["utcOffset"]}, " +
                           $"scene {settings.Scene}, wall {settings.Wall}, plant {settings.Plant}, weather {(settings.LiveWeather ? "live" : "by hand " + settings.ManualWeather)} (cloud {state["cloud"]:0.00}, {state["weather"]}){((bool)state["mirror"]! ? ", mirrored" : "")}, " +
                           $"sun {r.Sun:F2}°, frame {r.Width}x{r.Height} for {w.Screen.Bounds.Width}x{w.Screen.Bounds.Height} at {w.Screen.Scale * 100:F0} %, " +
-                          $"size {r.SizeMs} ms, draw {r.DrawMs} ms, copy {r.CopyMs} ms ({r.Mode})");
+                          $"size {r.SizeMs} ms, draw {r.DrawMs} ms, copy {r.CopyMs} ms ({r.Mode}){(mine.Input.Motion != Motion.Still ? $", motion {mine.Input.Motion}" : "")}");
                 if (r.Png != null) SaveCheck(w, state, r);
             }
         }
@@ -365,7 +442,7 @@ sealed class App : ApplicationContext
         bool held = card.IsOpen || dragging;
         if (!held)
         {
-            try { await engine.Rest(); }
+            try { await renderer.Rest(); }
             catch (Exception e) { Log.Write($"web: could not put the engine to rest: {e.Message}"); }
         }
         batches++;
@@ -373,23 +450,53 @@ sealed class App : ApplicationContext
         if (!dragging || batches % 10 == 0)
             Log.Write($"batch {batches} ({why}): {drawn} of {walls.Count} wall(s), engine start {startMs} ms, frames ready after {drawMs} ms, " +
                       $"processor {Measure.CpuSince(cpuBefore, cpuAfter) * 1000:F0} ms (app and web engine), " +
-                      (held ? "engine kept ready (the card is open)" : $"engine to rest ({engine.Policy}) {rest.ElapsedMilliseconds} ms"));
+                      (renderer is not WebRenderer ? $"drawn by {renderer.Name}" : held ? "engine kept ready (the card is open)" : $"engine to rest ({engine.Policy}) {rest.ElapsedMilliseconds} ms"));
         if (batches == 1)
         {
             firstMeasure.Start();
             if (firstLaunch && !settings.FirstLaunchAnswered) ui.Post(_ => _ = card.Open("first launch"), null);
         }
         Schedule();
+        UpdateMotion($"after a frame ({why})");
+    }
+
+    /// The wind the motion gets: MET's for the place while Live weather is on, otherwise 4 m/s (Ed, 18 November 2026).
+    double WindNow(WeatherNow weather) => settings.LiveWeather ? weather.Wind ?? Wind.Steady : Wind.Steady;
+
+    /// What stops the motion on every screen now, or null.
+    string? MotionBlock()
+    {
+        if (stopping) return "quit";
+        if (asleep) return "the computer sleeps";
+        if (displayOff) return "the screens are off";
+        if (locked) return "the screen is locked";
+        if (sessionAway) return "another user (or nobody) at this computer";
+        if (remotePretend ?? GetSystemMetrics(SM_REMOTESESSION) != 0) return "Remote Desktop session";
+        return null;
+    }
+
+    /// Looks again at everything that starts or stops the motion (Animator.update on the Mac).
+    void UpdateMotion(string trigger)
+    {
+        if (animator == null || stopping) return;
+        bool wanted = settings.Animates && WallLighting.Moves(settings.Scene);
+        // while the motion could run, other windows' moves are heard, and a look every 2 s besides
+        covers.Listen("motion", wanted);
+        if (wanted && !motionLook.Enabled) motionLook.Start();
+        if (!wanted) motionLook.Stop();
+        animator.Update(trigger, settings.Animates, settings.Scene, MotionBlock(), w => covers.Hidden(w.Screen));
     }
 
     async Task Wake()
     {
+        if (renderer is not WebRenderer) return;
         try { await engine.Begin(); }
         catch (Exception e) { Log.Write($"web: could not wake the engine for the card: {e.Message}"); }
     }
 
     async Task Rest(string why)
     {
+        if (renderer is not WebRenderer) return;
         try { await engine.Rest(); Log.Write($"web: engine to rest ({engine.Policy}, {why})"); }
         catch (Exception e) { Log.Write($"web: could not put the engine to rest: {e.Message}"); }
     }
@@ -469,6 +576,7 @@ sealed class App : ApplicationContext
             ["placeMode"] = settings.PlaceMode,
             ["locationUnavailable"] = around.LocationUnavailable,
             ["live"] = settings.LiveWeather,
+            ["animation"] = settings.Animates,
             ["ownThumbs"] = ownThumbs,
         };
     }
@@ -630,6 +738,16 @@ sealed class App : ApplicationContext
             case "live":
                 around.SetLive(v.GetBoolean());
                 break;
+            case "animation":
+            {
+                bool on = v.GetBoolean();
+                if (on == settings.Animates) return;
+                settings.Animates = on;
+                Changed($"Animation {(on ? "on" : "off")}");
+                card.Push();
+                UpdateMotion(on ? "Animation switched on" : "Animation switched off");
+                break;
+            }
             case "windowOnRight":
             {
                 bool right = v.GetBoolean();
@@ -702,14 +820,13 @@ sealed class App : ApplicationContext
         var custom = settings.Custom;
         try
         {
-            await engine.Begin();
-            var pictures = await engine.Thumbs(new Dictionary<string, object?> { ["wall"] = Hidamari.Settings.OwnWall, ["custom"] = custom.ForPage() });
+            var pictures = await renderer.Thumbs(custom);
             Directory.CreateDirectory(Card.ThumbsFolder);
-            foreach (var (name, url) in pictures)
-                File.WriteAllBytes(Path.Combine(Card.ThumbsFolder, $"{name}.jpg"), Convert.FromBase64String(url[(url.IndexOf(',') + 1)..]));
+            foreach (var (name, jpeg) in pictures)
+                File.WriteAllBytes(Path.Combine(Card.ThumbsFolder, $"{name}.jpg"), jpeg);
             File.WriteAllText(Path.Combine(Card.ThumbsFolder, "wall.json"), JsonSerializer.Serialize(custom.ForPage()));
             ownThumbs++;
-            Log.Write($"thumbs: {pictures.Count} pictures of the own wall drawn in {sw.ElapsedMilliseconds} ms");
+            Log.Write($"thumbs: {pictures.Count} pictures of the own wall drawn by {renderer.Name} in {sw.ElapsedMilliseconds} ms");
             card.Push();
         }
         catch (Exception e) { Log.Write($"thumbs: could not draw the own wall's pictures ({e.Message})"); }
@@ -781,14 +898,153 @@ sealed class App : ApplicationContext
                 case "locate": _ = around.Locate("check"); break;
                 case "zones": _ = Zones_(); break;
                 case "measure": measure.Write(c.TryGetProperty("why", out var why) ? why.GetString() ?? "check" : "check"); break;
+                // ---- stage 4: the drawing and the motion ----
+                case "renderer": SwitchRenderer(c.GetProperty("to").GetString()!, "check: another drawing"); break;
+                case "loseDevice":
+                    if (d3d == null) throw new InvalidOperationException("Direct3D does not draw now");
+                    d3d.SimulateLoss = c.TryGetProperty("times", out var times) ? times.GetInt32() : 1;
+                    if (!c.TryGetProperty("draw", out var dr) || dr.GetBoolean()) { foreach (var w in walls) w.Stale = true; WantDraw("check: the device is lost"); }
+                    break;
+                case "power":
+                    Power.Pretend = c.TryGetProperty("pretend", out var pr) && pr.ValueKind == JsonValueKind.String ? pr.GetString() : null;
+                    OnPower($"check: {(Power.Pretend ?? "the real power state")}");
+                    break;
+                case "remote":
+                    remotePretend = c.TryGetProperty("pretend", out var rp) && rp.ValueKind is JsonValueKind.True or JsonValueKind.False ? rp.GetBoolean() : null;
+                    UpdateMotion($"check: Remote Desktop {(remotePretend is { } rpv ? (rpv ? "pretended" : "pretended away") : "as it is")}");
+                    break;
+                case "motionClock":
+                    if (animator != null) animator.ClockOffset = c.GetProperty("offset").GetDouble();
+                    break;
+                case "lookAgain": UpdateMotion("check: look again"); break;
+                case "motion": break;   // the state is in the reply
+                case "compare": _ = Compare(c.GetProperty("states").GetString()!, c.GetProperty("out").GetString()!, !c.TryGetProperty("web", out var cw) || cw.GetBoolean()); break;
+                case "video": _ = Video(c); break;
                 default: throw new InvalidDataException($"unknown command {what}");
             }
             reply = "ok";
         }
         catch (Exception e) { reply = e.Message; Log.Write($"check: command failed ({e.Message})"); }
-        try { File.WriteAllText(Path.Combine(checkFolder!, "command-reply.json"), JsonSerializer.Serialize(new { id, reply, open = card.IsOpen, lastOpenMs = card.LastOpenMs, asked = around.Asked, located = around.Located?.ToString(), place = settings.Place.ForPage(), placeMode = settings.PlaceMode })); }
+        try
+        {
+            File.WriteAllText(Path.Combine(checkFolder!, "command-reply.json"), JsonSerializer.Serialize(new
+            {
+                id, reply, open = card.IsOpen, lastOpenMs = card.LastOpenMs, asked = around.Asked, located = around.Located?.ToString(), place = settings.Place.ForPage(), placeMode = settings.PlaceMode,
+                renderer = renderer.Name, rendererDescribe = renderer.Describe, recovered = d3d?.Recovered ?? 0, animates = settings.Animates,
+                motion = animator?.Status(), picturesMB = d3d?.Gpu.PicturesMB ?? 0,
+            }));
+        }
         catch { }
     }
+
+    /// The checks: the same states drawn by Direct3D and by the web engine, as PNG files (states: a JSON list of
+    /// { name, width, height, page }, page as komorebi.render() takes it, with or without motion).
+    async Task Compare(string statesFile, string outDir, bool web)
+    {
+        var sw = Stopwatch.StartNew();
+        int n = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(statesFile));
+            var list = doc.RootElement.EnumerateArray().Select(e => (name: e.GetProperty("name").GetString()!, w: e.GetProperty("width").GetInt32(),
+                h: e.GetProperty("height").GetInt32(), page: (Dictionary<string, object?>)Plain(e.GetProperty("page"))!)).ToList();
+            Directory.CreateDirectory(Path.Combine(outDir, "d3d"));
+            var gpu = d3d?.Gpu ?? throw new InvalidOperationException("Direct3D does not draw now");
+            foreach (var s in list)
+            {
+                var u = WallLighting.Uniforms(Wall.Input(s.page) with { Width = s.w, Height = s.h });
+                var px = await Task.Run(() => gpu.Image(u));
+                File.WriteAllBytes(Path.Combine(outDir, "d3d", s.name + ".png"), D3DRenderer.Png(px, s.w, s.h));
+                n++;
+            }
+            Log.Write($"check: {n} states drawn by Direct3D in {sw.ElapsedMilliseconds} ms");
+            if (web)
+            {
+                Directory.CreateDirectory(Path.Combine(outDir, "web"));
+                using var hidden = new WallWindow(new ScreenInfo("COMPARE", new Rectangle(0, 0, 1, 1), new Rectangle(0, 0, 1, 1), 1, false, 60));
+                await engine.Begin();
+                foreach (var s in list)
+                {
+                    var screen = new ScreenInfo("COMPARE", new Rectangle(0, 0, s.w, s.h), new Rectangle(0, 0, s.w, s.h), 1, false, 60);
+                    var r = await engine.Draw(screen, s.page, hidden, png: true);
+                    if (r.Width != s.w || r.Height != s.h) Log.Write($"check: the web frame of {s.name} is {r.Width}x{r.Height}, not {s.w}x{s.h}");
+                    var png = r.Png!;
+                    File.WriteAllBytes(Path.Combine(outDir, "web", s.name + ".png"), Convert.FromBase64String(png[(png.IndexOf(',') + 1)..]));
+                }
+                if (!card.IsOpen) await engine.Rest();
+                Log.Write($"check: {list.Count} states drawn by the web engine too, {sw.ElapsedMilliseconds} ms in all");
+            }
+            File.WriteAllText(Path.Combine(outDir, "done.json"), JsonSerializer.Serialize(new { ok = true, count = list.Count, ms = sw.ElapsedMilliseconds, d3d = d3d?.Describe, web = engine.WebGl }));
+        }
+        catch (Exception e)
+        {
+            Log.Write($"check: the comparison failed after {n} state(s): {e}");
+            try { Directory.CreateDirectory(outDir); File.WriteAllText(Path.Combine(outDir, "done.json"), JsonSerializer.Serialize(new { ok = false, error = e.ToString() })); } catch { }
+        }
+    }
+
+    /// The checks: the wall's motion as pictures, one per frame, for the videos for Ed. The motion clock runs from 0
+    /// (frame by frame, nothing drawn) up to `start` seconds, then `seconds` of frames are drawn, `fps` a second, JPEG.
+    /// `page` is the still state; `wind` m/s, or `winds`: [[from second, m/s], …] for a wind that changes.
+    async Task Video(JsonElement c)
+    {
+        var sw = Stopwatch.StartNew();
+        var dir = c.GetProperty("folder").GetString()!;
+        try
+        {
+            Directory.CreateDirectory(dir);
+            var gpu = d3d?.Gpu ?? throw new InvalidOperationException("Direct3D does not draw now");
+            var page = (Dictionary<string, object?>)Plain(c.GetProperty("page"))!;
+            int w = c.GetProperty("width").GetInt32(), h = c.GetProperty("height").GetInt32(), fps = c.GetProperty("fps").GetInt32();
+            double start = c.GetProperty("start").GetDouble(), seconds = c.GetProperty("seconds").GetDouble();
+            var winds = new List<(double at, double ms)>();
+            if (c.TryGetProperty("winds", out var ws)) foreach (var p in ws.EnumerateArray()) winds.Add((p[0].GetDouble(), p[1].GetDouble()));
+            else winds.Add((0, c.GetProperty("wind").GetDouble()));
+            double WindAt(double t) => winds.Where(x => x.at <= t).Select(x => x.ms).DefaultIfEmpty(winds[0].ms).Last();
+            var input = Wall.Input(page) with { Width = w, Height = h };
+            var u0 = WallLighting.Uniforms(input);
+            double phase = WallLighting.Phase(input.Minutes);
+            var clock = new MotionClock(input.Scene == 3 ? MotionClock.Kind.Water : MotionClock.Kind.Leaves, 0, WindAt(0), phase);
+            int k = 0;
+            for (; k / (double)fps < start; k++) clock.Frame(k / (double)fps, WindAt(k / (double)fps), phase);
+            int total = (int)Math.Round(seconds * fps);
+            var log = new List<string>();
+            for (int i = 0; i < total; i++, k++)
+            {
+                double t = k / (double)fps;
+                var f = clock.Frame(t, WindAt(t), phase);
+                var u = u0 with { T = f.Motion.T, Wind = f.Motion.Wind, WindLeaves = f.Motion.WindLeaves };
+                var from = f.From is { } fm && f.Mix < 1 ? u0 with { T = fm.T, Wind = fm.Wind, WindLeaves = fm.WindLeaves } : null;
+                var px = await Task.Run(() => gpu.Image(u, from, f.Mix));
+                using var b = D3DRenderer.Bitmap(px, w, h);
+                var codec = System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders().First(x => x.FormatID == System.Drawing.Imaging.ImageFormat.Jpeg.Guid);
+                using var ep = new System.Drawing.Imaging.EncoderParameters(1);
+                ep.Param[0] = new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 92L);
+                b.Save(Path.Combine(dir, $"frame-{i + 1:D5}.jpg"), codec, ep);
+                log.Add($"{i + 1} {t:F3} {f}");
+            }
+            File.WriteAllLines(Path.Combine(dir, "frames.txt"), log);
+            File.WriteAllText(Path.Combine(dir, "done.json"), JsonSerializer.Serialize(new { ok = true, frames = total, ms = sw.ElapsedMilliseconds }));
+            Log.Write($"check: {total} frames of motion in {sw.ElapsedMilliseconds} ms ({dir})");
+        }
+        catch (Exception e)
+        {
+            Log.Write($"check: the video failed: {e}");
+            try { File.WriteAllText(Path.Combine(dir, "done.json"), JsonSerializer.Serialize(new { ok = false, error = e.ToString() })); } catch { }
+        }
+    }
+
+    /// JSON as plain values: dictionaries, lists, doubles, strings, booleans.
+    static object? Plain(JsonElement e) => e.ValueKind switch
+    {
+        JsonValueKind.Object => e.EnumerateObject().ToDictionary(p => p.Name, p => Plain(p.Value)),
+        JsonValueKind.Array => e.EnumerateArray().Select(Plain).ToList(),
+        JsonValueKind.Number => e.GetDouble(),
+        JsonValueKind.String => e.GetString(),
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        _ => null,
+    };
 
     async Task Zones_()
     {
@@ -831,6 +1087,7 @@ sealed class App : ApplicationContext
     {
         asleep = sleeping;
         Log.Write(sleeping ? "power: going to sleep" : "power: woke up");
+        UpdateMotion(sleeping ? "going to sleep" : "woke up");
         if (sleeping) around.SetQuiet(true, "going to sleep");
         else { WantDraw("woke up"); around.OnWake(); }
     }
@@ -841,6 +1098,7 @@ sealed class App : ApplicationContext
         Log.Write($"power: screens {(state switch { 0 => "off", 1 => "on", 2 => "dimmed", _ => state.ToString() })}");
         if (off == displayOff) return;
         displayOff = off;
+        UpdateMotion(off ? "the screens went off" : "the screens are on");
         if (!off) WantDraw("the screens are on again", staleOnly: true);
     }
 
@@ -859,10 +1117,30 @@ sealed class App : ApplicationContext
                 around.SetQuiet(false, "unlocked");
                 WantDraw("unlocked", staleOnly: true);
                 break;
+            case WTS_CONSOLE_DISCONNECT:
+            case WTS_REMOTE_DISCONNECT:
+                sessionAway = true;
+                Log.Write($"session: {(change == WTS_CONSOLE_DISCONNECT ? "the screen went to another session (another user, or Remote Desktop)" : "the Remote Desktop session went away")}");
+                break;
+            case WTS_CONSOLE_CONNECT:
+            case WTS_REMOTE_CONNECT:
+                sessionAway = false;
+                Log.Write($"session: {(change == WTS_CONSOLE_CONNECT ? "back on this computer's screen" : "a Remote Desktop session came")} " +
+                          $"(Remote Desktop now: {(GetSystemMetrics(SM_REMOTESESSION) != 0 ? "yes" : "no")})");
+                WantDraw("the session is back", staleOnly: true);
+                break;
             default:
                 Log.Write($"session: change {change}");
                 break;
         }
+        UpdateMotion("the session changed");
+    }
+
+    /// Mains power, battery, a power saver: the motion's rate may change (Power).
+    public void OnPower(string what)
+    {
+        Log.Write($"power: {what}; the motion would get {Power.Wanted().fps} frames a second ({Power.Wanted().why})");
+        UpdateMotion(what);
     }
 
     public void OnTrayMessage(IntPtr w, IntPtr l) => tray.OnCallback(w, l);
@@ -881,15 +1159,18 @@ sealed class App : ApplicationContext
         Log.Write($"stopping: {why}");
         try { measure.Write("at quit"); } catch { }
         stopping = true;
-        foreach (var t in new[] { tick, screensSoon, lookSoon, retry, measureTimer, firstMeasure, thumbsSoon }) t.Stop();
+        foreach (var t in new[] { tick, screensSoon, lookSoon, retry, measureTimer, firstMeasure, thumbsSoon, motionLook }) t.Stop();
+        try { animator?.End(); } catch (Exception e) { Log.Write($"animation: {e.Message}"); }
         if (saveSoon.Enabled) { saveSoon.Stop(); settings.Save(); }
         foreach (var w in waits) w.Unregister(null);
         try { card.Close("the app quits"); card.Dispose(); } catch (Exception e) { Log.Write($"card: {e.Message}"); }
         covers.Dispose();
         around.Dispose();
+        foreach (var w in walls) renderer.Forget(w);
         Drop(walls, "quit");
         walls = new();
         if (desktop.Progman != IntPtr.Zero) desktop.Restore();
+        try { renderer.Dispose(); } catch (Exception e) { Log.Write($"d3d: {e.Message}"); }
         tray.Dispose();
         engine.Dispose();
         measure.Dispose();
@@ -919,6 +1200,12 @@ sealed class Messages : NativeWindow
         CreateHandle(new CreateParams { Caption = "Hidamari messages", X = 0, Y = 0, Width = 1, Height = 1 });
         var display = GUID_CONSOLE_DISPLAY_STATE;
         RegisterPowerSettingNotification(Handle, ref display, 0);
+        // the motion's rate: mains or battery, battery saver, energy saver (Windows 11)
+        foreach (var g in new[] { Power.AcDc, Power.BatterySaver, Power.EnergySaver })
+        {
+            var guid = g;
+            RegisterPowerSettingNotification(Handle, ref guid, 0);
+        }
         WTSRegisterSessionNotification(Handle, 0);
     }
 
@@ -951,6 +1238,9 @@ sealed class Messages : NativeWindow
                         case PBT_POWERSETTINGCHANGE:
                             var s = Marshal.PtrToStructure<POWERBROADCAST_SETTING>(m.LParam);
                             if (s.PowerSetting == GUID_CONSOLE_DISPLAY_STATE) app.OnDisplay(s.Data);
+                            else if (s.PowerSetting == Power.AcDc) app.OnPower(s.Data == 0 ? "on mains power" : s.Data == 1 ? "on battery" : $"power source {s.Data}");
+                            else if (s.PowerSetting == Power.BatterySaver) app.OnPower(s.Data != 0 ? "battery saver on" : "battery saver off");
+                            else if (s.PowerSetting == Power.EnergySaver) { Power.EnergySaverLevel = s.Data; app.OnPower(s.Data != 0 ? "energy saver on" : "energy saver off"); }
                             break;
                     }
                     m.Result = new IntPtr(1);
