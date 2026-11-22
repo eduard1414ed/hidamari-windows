@@ -358,6 +358,7 @@ function renderRows() {
   const rows = [...searchRows.querySelectorAll('.search-row')];
   rows.forEach((b, i) => b.classList.toggle('lit', i === search.highlight));
   if (search.highlight !== null && rows[search.highlight]) rows[search.highlight].scrollIntoView({ block: 'nearest' });
+  if (A.check) layoutSoon();
 }
 
 $('quit').addEventListener('click', () => post({ type: 'quit' }));

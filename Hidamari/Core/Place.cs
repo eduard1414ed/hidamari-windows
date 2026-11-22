@@ -59,9 +59,28 @@ public static class Zones
             how = $"found as {win}";
             return tz;
         }
+        // a newer name an older Windows does not know yet: the old name of the same zone, or a zone with the same clock
+        if (Older.TryGetValue(id, out var old) && (TimeZoneInfo.TryFindSystemTimeZoneById(old, out tz)
+            || TimeZoneInfo.TryConvertIanaIdToWindowsId(old, out win) && TimeZoneInfo.TryFindSystemTimeZoneById(win, out tz)))
+        {
+            how = $"found as {old}, the same clock under an older name";
+            return tz;
+        }
         how = "not known to this computer, its own clock is used";
         return TimeZoneInfo.Local;
     }
+
+    /// Zones renamed or made in recent years, and an older zone with the same clock (seen missing on Windows Server
+    /// 2022 and 2025).
+    static readonly Dictionary<string, string> Older = new()
+    {
+        ["Europe/Kyiv"] = "Europe/Kiev",
+        ["America/Ciudad_Juarez"] = "America/Denver",      // Mountain time with summer time, as El Paso across the river
+        ["Asia/Urumqi"] = "Asia/Bishkek",                  // UTC+6 all year
+        ["America/Coyhaique"] = "America/Punta_Arenas",    // UTC−3 all year, as Magallanes next to it
+        ["America/Nuuk"] = "America/Godthab",
+        ["Pacific/Kanton"] = "Pacific/Enderbury",
+    };
 
     /// The IANA name of the computer's own zone (Windows names its zones differently).
     public static string LocalName()
