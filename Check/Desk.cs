@@ -174,6 +174,43 @@ static class Desk
         catch (Exception e) { return e.Message; }
     }
 
+    /// Windows 11 asks by itself "Let Windows and apps access your location?" (Yes / No) when an app first asks for the
+    /// place, over everything, and the question stays until answered. Answered here with `button` as a careful person
+    /// would; says what was found (or every top-level window's name when nothing was).
+    public static string AnswerLocationQuestion(string button, TimeSpan within)
+    {
+        var names = "";
+        for (var sw = Stopwatch.StartNew(); sw.Elapsed < within; Thread.Sleep(500))
+        {
+            try
+            {
+                var windows = UIA.AutomationElement.RootElement.FindAll(UIA.TreeScope.Children, UIA.Condition.TrueCondition)
+                    .Cast<UIA.AutomationElement>().ToList();
+                names = string.Join(" | ", windows.Select(w => $"{w.Current.Name} [{w.Current.ClassName}]"));
+                foreach (var w in windows)
+                {
+                    var texts = w.FindAll(UIA.TreeScope.Descendants, UIA.Condition.TrueCondition).Cast<UIA.AutomationElement>()
+                        .Select(e => e.Current.Name ?? "").ToList();
+                    if (!texts.Any(t => t.Contains("location", StringComparison.OrdinalIgnoreCase))) continue;
+                    var b = w.FindFirst(UIA.TreeScope.Descendants, new UIA.AndCondition(
+                        new UIA.PropertyCondition(UIA.AutomationElement.ControlTypeProperty, UIA.ControlType.Button),
+                        new UIA.PropertyCondition(UIA.AutomationElement.NameProperty, button)));
+                    if (b == null) continue;
+                    var question = texts.FirstOrDefault(t => t.Contains("location", StringComparison.OrdinalIgnoreCase));
+                    if (b.TryGetCurrentPattern(UIA.InvokePattern.Pattern, out var p)) ((UIA.InvokePattern)p).Invoke();
+                    else
+                    {
+                        var r = b.Current.BoundingRectangle;
+                        Native.Click(new Point((int)(r.X + r.Width / 2), (int)(r.Y + r.Height / 2)));
+                    }
+                    return $"answered \"{button}\" to \"{question}\" in {w.Current.Name} [{w.Current.ClassName}] after {sw.ElapsedMilliseconds} ms";
+                }
+            }
+            catch (Exception e) { names = e.Message; }
+        }
+        return $"no question about the place found; windows: {names}";
+    }
+
     /// Windows 11: the icon of a new app goes under the "^" arrow. The Settings app's "Other system tray icons"
     /// switch is HKCU\Control Panel\NotifyIconSettings\<n>\IsPromoted; turned on here for the app's icon.
     public static bool Promote(string exe)

@@ -203,10 +203,13 @@ static partial class Check
     {
         const string g = "card: first launch";
         var opened = run.Next("card: opened (first launch)", TimeSpan.FromSeconds(30));
-        // Windows 11 asks itself whether the app may know the place, over everything, the screen dimmed: a picture of
-        // it for the sheet, then wait until it has gone (unanswered it goes after about half a minute)
+        // Windows 11 asks itself whether the app may know the place, over everything, the screen dimmed, and the
+        // question stays until answered: a picture of it for the sheet, then "No", as a careful person would (the rest
+        // of the run goes the "location unavailable" way, as on these machines anyway)
         Thread.Sleep(2000);
         Pictures.Shot("card/windows-asks-location.png");
+        facts["windowsLocationQuestion"] = Desk.AnswerLocationQuestion("No", TimeSpan.FromSeconds(8));
+        Say($"Windows' question about the place: {facts["windowsLocationQuestion"]}");
         for (var sw = Stopwatch.StartNew(); sw.Elapsed < TimeSpan.FromSeconds(60)
              && !run.Lines().Any(x => x.Contains("place: located (launch") || x.Contains("place: not located (launch")); ) Thread.Sleep(500);
         Thread.Sleep(1500);
