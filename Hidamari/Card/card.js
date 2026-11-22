@@ -30,7 +30,7 @@ let A = {
   screens: 'all', desktops: 'all', desktopsOffered: false, windowOnRight: false, login: false, firstAnswered: true,
   shown: Date.now(), now: Date.now(), place: { name: 'Berlin', country: 'Germany', lat: 52.52, lng: 13.405, tz: 'Europe/Berlin' },
   placeMode: 'automatic', locationUnavailable: false, live: true, locationButton: false,
-  credit: { where: 'bottom', weather: '', places: '' },
+  credit: { weather: '', places: '' },
   ownThumbs: 0, glass: 'plain', anchor: 'bottom', insets: { left: 0, top: 0, right: 0, bottom: 0 }, check: false,
 };
 /** What only the open card knows. */
@@ -277,7 +277,6 @@ $('followSwitch').addEventListener('click', () => {
 // Live weather: on, the weather of the place; off, the weather by hand
 $('liveSwitch').addEventListener('click', () => choose({ live: !A.live }));
 // where the weather and the cities come from: their pages in the browser
-$('credit').addEventListener('click', () => post({ type: 'openLink', to: 'met' }));
 $('creditsMet').addEventListener('click', () => post({ type: 'openLink', to: 'met' }));
 $('creditsGeo').addEventListener('click', () => post({ type: 'openLink', to: 'geonames' }));
 
@@ -650,12 +649,9 @@ function render() {
   attr($('followSwitch'), 'aria-checked', A.follow);
   attr($('liveSwitch'), 'aria-checked', !!A.live);
   $('weather').classList.toggle('live', !!A.live);
-  // where the weather comes from, while it is live (A.credit.where: 'bottom', 'settings', 'both' or 'none')
-  const cr = A.credit || {}, crBottom = cr.where === 'bottom' || cr.where === 'both', crSettings = cr.where === 'settings' || cr.where === 'both';
-  text($('credit'), cr.weather || '');
-  $('credit').hidden = !(A.live && crBottom && !ui.settingsOpen && cr.weather);
+  // where the weather and the cities come from: in the settings only
+  const cr = A.credit || {};
   text($('creditsMet'), cr.weather || ''); text($('creditsGeo'), cr.places || '');
-  $('credits').hidden = !crSettings; $('creditsLine').hidden = !crSettings;
   const offered = choices(A.scene), shown = shownWeather(A.scene);
   weatherButtons.forEach(({ slot: s, b }, i) => {
     const w = WEATHER[i];
@@ -719,7 +715,7 @@ function layout() {
   const r = (e) => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.width, b.height].map((v) => Math.round(v * 100) / 100); };
   const searchLines = [...searchRows.querySelectorAll('.search-row')];
   const out = { card: r(card), arc: r(arcBox), pad: r(pad), place: r($('place')), searchBack: r($('searchBack')), searchInput: r(searchInput),
-    credit: $('credit').hidden ? null : r($('credit')), locationSettings: searchRows.querySelector('.location-settings') ? r(searchRows.querySelector('.location-settings')) : null,
+    creditsMet: r($('creditsMet')), creditsGeo: r($('creditsGeo')), locationSettings: searchRows.querySelector('.location-settings') ? r(searchRows.querySelector('.location-settings')) : null,
     search: { open: search.open, query: search.query, highlight: search.highlight, focused: document.activeElement === searchInput,
       lines: searchLines.map((b) => ({ text: b.getAttribute('aria-label'), rect: r(b), lit: b.classList.contains('lit') })) }, wave: r($('wave')), dial: r($('dial')), follow: r($('followSwitch')), live: r($('liveSwitch')),
     gear: r($('gear')), quit: r($('quit')), back: r($('settingsBack')), login: r($('loginSwitch')),

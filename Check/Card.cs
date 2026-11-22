@@ -467,14 +467,14 @@ static partial class Check
             var on = ClickCard(run, l, "live", until: x => x.Is("live")) ?? l;
             var said = run.Next("settings: Live weather on", TimeSpan.FromSeconds(10));
             var asked = run.Next("weather: test source for ", TimeSpan.FromSeconds(20));
-            Result(g, "Live weather on: asked at once, the icons hidden, the source named at the bottom",
-                on.Is("live") && !on.Is("weatherIcons") && on.Has("credit") && said != null && asked != null,
-                $"journal: {said ?? "no change"} / {asked ?? "nothing asked"}; icons {(on.Is("weatherIcons") ? "shown" : "hidden")}, credit {(on.Has("credit") ? "shown" : "not shown")}");
+            Result(g, "Live weather on: asked at once, the icons hidden, nothing new at the bottom",
+                on.Is("live") && !on.Is("weatherIcons") && said != null && asked != null,
+                $"journal: {said ?? "no change"} / {asked ?? "nothing asked"}; icons {(on.Is("weatherIcons") ? "shown" : "hidden")}");
             Pictures.Crop(Pictures.Shot(null), on.Window, "card/live-weather-on.png");
             run.Mark();
             var off = ClickCard(run, on, "live", until: x => !x.Is("live")) ?? on;
             var offSaid = run.Next("settings: Live weather off", TimeSpan.FromSeconds(10));
-            Result(g, "Live weather off: the icons again, no credit", !off.Is("live") && off.Is("weatherIcons") && !off.Has("credit") && offSaid != null,
+            Result(g, "Live weather off: the icons again", !off.Is("live") && off.Is("weatherIcons") && offSaid != null,
                 $"journal: {offSaid ?? "no change"}; icons {(off.Is("weatherIcons") ? "shown" : "hidden")}");
             l = off;
         }
@@ -925,13 +925,11 @@ static partial class Check
             var words = new[] { ("a", "Data from MET Norway", "Places from GeoNames"), ("b", "Weather: MET Norway", "Cities: GeoNames"), ("c", "MET Norway", "GeoNames") };
             foreach (var (k, weather, places) in words)
             {
-                Command(run, new { @do = "credit", where = "bottom", weather, places });
-                Shot($"credit-bottom-{k}", 12, 10); Command(run, new { @do = "close" });
-                Shot($"credit-bottom-{k}-night", 22, 40); Command(run, new { @do = "close" });
+                Command(run, new { @do = "credit", weather, places });
+                Shot($"credit-settings-{k}", 12, 10, l => Native.Click(l.At_("gear")), x => x.Settings); Command(run, new { @do = "close" });
             }
-            Command(run, new { @do = "credit", where = "settings" });
-            Shot("credit-settings", 12, 10, l => Native.Click(l.At_("gear")), x => x.Settings); Command(run, new { @do = "close" });
-            Command(run, new { @do = "credit", where = "bottom" });
+            Command(run, new { @do = "credit", weather = words[0].Item2, places = words[0].Item3 });
+            Shot("credit-settings-night", 22, 40, l => Native.Click(l.At_("gear")), x => x.Settings); Command(run, new { @do = "close" });
             Command(run, new { @do = "choose", type = "set", change = new { live = false } });
             // the settings last: turning Launch at login on makes Windows show a notice in the corner a while later,
             // over the pictures after it

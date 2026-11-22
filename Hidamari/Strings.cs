@@ -34,7 +34,7 @@ static class Strings
     public const string SearchCity = "Search for a city";
     /// TEMP: one of the ways offered when Windows does not give the place: a button to Windows' location settings
     public const string OpenLocationSettings = "Open location settings";
-    /// TEMP: where the live weather comes from (MET Norway asks for it), at the bottom left of the card or in the settings
+    /// TEMP: where the live weather comes from (MET Norway asks for it), small, in the settings
     public const string CreditWeather = "Data from MET Norway";
     /// TEMP: where the list of cities comes from (GeoNames asks for it), in the settings
     public const string CreditPlaces = "Places from GeoNames";
