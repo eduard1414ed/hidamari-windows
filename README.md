@@ -15,6 +15,7 @@ The code is published to be read, not reused: see [LICENSE](LICENSE).
 | `ci/` | what the GitHub machines need besides .NET (the WebView2 runtime) |
 | `shared/` | files the Windows app shares with the Mac app: the wall's picture (`wall.html`), the texts (`Strings.swift`), scene pictures, grain, fonts. Copied from the Mac app's repository; never edited here |
 | `tools/check-strings.py` | stops the build when a text differs from the Mac app's |
+| `tools/make-cities.py` | builds `Hidamari/Resources/cities.gz`, the list of places for the city search and for naming the place Windows finds, from GeoNames (CC BY 4.0) |
 
 ## Build
 
