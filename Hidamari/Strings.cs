@@ -25,6 +25,10 @@ static class Strings
     public const string FirstLaunchQuestion = "Open Hidamari when you log in?";
     public const string NotNow = "Not now";
     public const string OpenAtLogin = "Open at login";
+    /// Light from: the window and the blinds drawn mirrored (the Mac's update 1.3)
+    public const string LightFrom = "Light from";
+    public const string LightLeft = "Left";
+    public const string LightRight = "Right";
 
     // ---------- only heard with a screen reader ----------
     public const string TimeOfDay = "Time of day";

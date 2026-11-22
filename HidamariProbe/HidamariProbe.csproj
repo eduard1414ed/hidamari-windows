@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Windows, stage 0: the probe. The wall of the web version under the desktop icons, nothing else.
-       The picture is the app's own Sources/Hidamari/Resources/wall.html, linked in at build time, never copied. -->
+       The picture is the app's own wall.html (shared/), linked in at build time, never copied. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>

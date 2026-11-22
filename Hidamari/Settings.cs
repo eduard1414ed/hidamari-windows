@@ -48,6 +48,9 @@ sealed class Settings
     public string ManualWeather = "clear";
     /// "all" or "main"
     public string Screens = "all";
+    /// Light from: Right draws the window and the blinds mirrored (windowOnRight on the Mac). Not in the files of
+    /// stage 2: missing means Left, and that is no fault of the file.
+    public bool WindowOnRight;
     /// the first launch's question was answered (or the person chose in the settings before answering)
     public bool FirstLaunchAnswered;
 
@@ -104,6 +107,7 @@ sealed class Settings
         s.ManualWeather = GetString("manualWeather", Weathers) ?? s.ManualWeather;
         s.Screens = GetString("screens", new[] { "all", "main" }) ?? s.Screens;
         s.FirstLaunchAnswered = Get("firstLaunchAnswered", n => (bool?)n.GetValue<bool>()) ?? true;
+        if (obj.ContainsKey("windowOnRight")) s.WindowOnRight = Get("windowOnRight", n => (bool?)n.GetValue<bool>()) ?? false;
         if (o.TryGetPropertyValue("custom", out var c) && c is JsonObject co)
         {
             try
@@ -138,7 +142,7 @@ sealed class Settings
                 ["version"] = Version,
                 ["scene"] = Scene, ["wall"] = Wall, ["custom"] = Custom.ForPage(), ["plant"] = Plant,
                 ["followsSun"] = FollowsSun, ["pinnedMinutes"] = PinnedMinutes, ["manualWeather"] = ManualWeather,
-                ["screens"] = Screens,
+                ["screens"] = Screens, ["windowOnRight"] = WindowOnRight,
                 ["firstLaunchAnswered"] = FirstLaunchAnswered,
             }, new JsonSerializerOptions { WriteIndented = true });
             var temp = FilePath + ".new";
@@ -151,7 +155,7 @@ sealed class Settings
     public string Describe() =>
         $"scene {Scene}, wall {Wall}, own wall L {Custom.L:F3} x {Custom.X:F3} y {Custom.Y:F3} k {Custom.K:F3} texture {Custom.Rough:F2} " +
         $"shade {(Custom.Shade is { } s ? $"{s.X:F3},{s.Y:F3}" : "none")}, plant {Plant}, live sun {(FollowsSun ? "on" : $"off at {Clock(PinnedMinutes)}")}, " +
-        $"weather by hand {ManualWeather}, screens {Screens}, first launch answered {FirstLaunchAnswered}";
+        $"weather by hand {ManualWeather}, screens {Screens}, light from {(WindowOnRight ? "right" : "left")}, first launch answered {FirstLaunchAnswered}";
 
     public static string Clock(double minutes)
     {

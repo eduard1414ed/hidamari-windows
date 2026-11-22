@@ -319,7 +319,7 @@ sealed class App : ApplicationContext
                     if (card.IsOpen) card.Push();
                 }
                 Log.Write($"frame {frames} ({why}) on {w.Screen.Short}: Berlin {local:yyyy-MM-dd HH:mm:ss}{(settings.FollowsSun ? "" : " (Live sun off)")}, utcOffset {state["utcOffset"]}, " +
-                          $"scene {settings.Scene}, wall {settings.Wall}, plant {settings.Plant}, weather {settings.ManualWeather} (cloud {state["cloud"]}, {state["weather"]}), " +
+                          $"scene {settings.Scene}, wall {settings.Wall}, plant {settings.Plant}, weather {settings.ManualWeather} (cloud {state["cloud"]}, {state["weather"]}){((bool)state["mirror"]! ? ", mirrored" : "")}, " +
                           $"sun {r.Sun:F2}°, frame {r.Width}x{r.Height} for {w.Screen.Bounds.Width}x{w.Screen.Bounds.Height} at {w.Screen.Scale * 100:F0} %, " +
                           $"size {r.SizeMs} ms, draw {r.DrawMs} ms, copy {r.CopyMs} ms ({r.Mode})");
                 if (r.Png != null) SaveCheck(w, state, r);
@@ -403,7 +403,7 @@ sealed class App : ApplicationContext
             {
                 state,
                 frame = frames,
-                settings = new { settings.Scene, settings.Wall, settings.Plant, settings.FollowsSun, settings.PinnedMinutes, settings.ManualWeather, custom = settings.Custom.ForPage() },
+                settings = new { settings.Scene, settings.Wall, settings.Plant, settings.FollowsSun, settings.PinnedMinutes, settings.ManualWeather, settings.WindowOnRight, custom = settings.Custom.ForPage() },
                 screen = new { w.Screen.Name, w.Screen.Bounds.X, w.Screen.Bounds.Y, w.Screen.Bounds.Width, w.Screen.Bounds.Height, w.Screen.Scale },
                 canvas = new { width = r.Width, height = r.Height },
                 devicePixelRatio = w.Screen.Scale,
@@ -435,7 +435,7 @@ sealed class App : ApplicationContext
         {
             ["scene"] = settings.Scene, ["wall"] = settings.Wall, ["custom"] = settings.Custom.ForPage(), ["plant"] = settings.Plant,
             ["follow"] = settings.FollowsSun, ["pinned"] = settings.PinnedMinutes, ["weather"] = settings.ManualWeather,
-            ["screens"] = settings.Screens, ["desktops"] = "all", ["desktopsOffered"] = false,
+            ["screens"] = settings.Screens, ["desktops"] = "all", ["desktopsOffered"] = false, ["windowOnRight"] = settings.WindowOnRight,
             ["login"] = LoginItem.IsOn, ["firstAnswered"] = settings.FirstLaunchAnswered,
             ["shown"] = (double)(shownMoment ?? Wall.Moment(now, settings)).ToUnixTimeMilliseconds(),
             ["now"] = (double)now.ToUnixTimeMilliseconds(),
@@ -568,6 +568,16 @@ sealed class App : ApplicationContext
             case "pinned":
                 settings.PinnedMinutes = Math.Clamp(v.GetDouble(), 0, 1439);
                 break;
+            case "windowOnRight":
+            {
+                bool right = v.GetBoolean();
+                if (right == settings.WindowOnRight) return;
+                settings.WindowOnRight = right;
+                Changed($"Light from: {(right ? "Right" : "Left")}");
+                // only the window and the blinds change; a frame anyway, it is one choice and cheap enough
+                WantDraw("Light from was chosen");
+                break;
+            }
             case "screens":
             {
                 var sc = v.GetString() == "main" ? "main" : "all";

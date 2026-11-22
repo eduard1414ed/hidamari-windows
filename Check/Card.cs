@@ -542,6 +542,8 @@ static partial class Check
         run.Next("build (Screens: All)", TimeSpan.FromSeconds(10));
         run.Next("frame ", TimeSpan.FromSeconds(30));
 
+        l = LightFrom(run, l);
+
         // Desktops is not offered (Windows does not tell the desktop of the app's windows)
         Result(g, "no Desktops row and no Screensaver row in the settings", !l.Has("desktopsAll") && !l.Has("desktopsThis"),
             l.Has("desktopsAll") ? "the Desktops row is shown" : "only Launch at login and Screens");
@@ -555,6 +557,57 @@ static partial class Check
         Esc();
         run.Next("card: closed", TimeSpan.FromSeconds(5));
         Thread.Sleep(800);
+    }
+
+    // ---------- Light from (the Mac's update 1.3) ----------
+
+    /// Right mirrors the window and the blinds only, the small pictures turn over with them; left as Right for the
+    /// restart that follows (it must survive it).
+    static Layout LightFrom(Run run, Layout l)
+    {
+        const string g = "card: Light from";
+        Result(g, "the Light from row is there, Left chosen at first", l.Has("lightLeft") && l.Has("lightRight") && !l.Is("lightRight"),
+            $"left {l.Has("lightLeft")}, right {l.Has("lightRight")}, right chosen {l.Is("lightRight")}");
+        string sceneBefore = l.Str("scene");
+        run.Mark();
+        l = ClickCard(run, l, "lightRight", until: x => x.Is("lightRight")) ?? l;
+        var said = run.Next("settings: Light from: Right", TimeSpan.FromSeconds(10));
+        Thread.Sleep(1000);
+        var saved = Run.Read(SettingsFile);
+        Result(g, "a click on Right chooses it and saves it", l.Is("lightRight") && said != null && saved.Contains("\"windowOnRight\": true"),
+            $"journal: {said ?? "nothing"}; settings.json: {(saved.Contains("\"windowOnRight\": true") ? "windowOnRight true" : "no windowOnRight true")}");
+        // each scene on the wall: only the window and the blinds are mirrored
+        var wrong = new List<string>();
+        foreach (var sc in new[] { 1, 2, 0, 3 })
+        {
+            run.Mark();
+            Command(run, new { @do = "choose", type = "set", change = new Dictionary<string, object> { ["scene"] = sc } });
+            var frame = run.Next("frame ", TimeSpan.FromSeconds(120));
+            var st = WallState(run)?.GetProperty("state");
+            bool mirror = st != null && st.Value.TryGetProperty("mirror", out var mv) && mv.ValueKind == JsonValueKind.True;
+            bool want = sc is 1 or 2;
+            if (st == null || st.Value.GetProperty("scene").GetInt32() != sc || mirror != want) wrong.Add($"scene {sc}: mirror {mirror} ({frame ?? "no frame"})");
+            KeepForMac(run, $"light-right-scene{sc}");
+        }
+        Result(g, "Right mirrors the window and the blinds, not the dapples and the water", wrong.Count == 0,
+            wrong.Count == 0 ? "window and blinds mirrored, dapples and water as they were (frames kept for the Mac)" : string.Join("; ", wrong));
+        // the small pictures, seen on the card
+        Command(run, new { @do = "choose", type = "set", change = new Dictionary<string, object> { ["scene"] = 1 } });
+        run.Next("frame ", TimeSpan.FromSeconds(120));
+        l = ClickCard(run, l, "back", until: x => !x.Settings) ?? l;
+        Thread.Sleep(1200);
+        l = ReadLayout(run) ?? l;
+        Pictures.Crop(Pictures.Shot(null), l.Window, "card/light-right.png");
+        Result(g, "the small pictures of the window, the blinds and the plants turn over", l.Str("mirroredScenes") == "1,2" && l.Is("mirroredPlants"),
+            $"turned over: scenes {l.Str("mirroredScenes")}, plants {l.Is("mirroredPlants")} (picture card/light-right.png)");
+        // back to the scene it was, the settings open again
+        if (int.TryParse(sceneBefore, out var before))
+        {
+            Command(run, new { @do = "choose", type = "set", change = new Dictionary<string, object> { ["scene"] = before } });
+            run.Next("frame ", TimeSpan.FromSeconds(120));
+        }
+        l = ClickCard(run, l, "gear", until: x => x.Settings) ?? l;
+        return l;
     }
 
     // ---------- settings survive a restart; broken files ----------
@@ -586,6 +639,8 @@ static partial class Check
             var (l2, _) = OpenByIcon(again);
             Result(g, "after a restart the card shows the same", l2 != null && l2.Str("scene") == "3" && l2.Str("wall") == "4" && !l2.Is("follow") && l2.Str("weather") == "cloudy",
                 l2 == null ? "card not open" : $"scene {l2.Str("scene")}, wall {l2.Str("wall")}, Live sun {(l2.Is("follow") ? "on" : "off")}, weather {l2.Str("weather")}");
+            Result(g, "Light from: Right survives a restart", l2 != null && l2.Is("lightRight") && l2.Str("mirroredScenes") == "1,2",
+                l2 == null ? "card not open" : $"right {l2.Is("lightRight")}, pictures turned over: {l2.Str("mirroredScenes")}");
             Esc();
         }
         finally { Quit(again); }

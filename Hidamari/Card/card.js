@@ -27,7 +27,7 @@ const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 let A = {
   scene: 0, wall: 0, custom: { L: 0.88, x: 0.5, y: 0.8, k: 0.1, rough: 1, shade: null }, plant: 2,
   follow: true, pinned: 720, weather: 'clear',
-  screens: 'all', desktops: 'all', desktopsOffered: false, login: false, firstAnswered: true,
+  screens: 'all', desktops: 'all', desktopsOffered: false, windowOnRight: false, login: false, firstAnswered: true,
   shown: Date.now(), now: Date.now(), place: { name: 'Berlin', lat: 52.52, lng: 13.405, tz: 'Europe/Berlin' },
   ownThumbs: 0, glass: 'plain', anchor: 'bottom', insets: { left: 0, top: 0, right: 0, bottom: 0 }, check: false, liveLook: 'dim',
 };
@@ -195,6 +195,10 @@ $('desktopsTitle').textContent = S.desktops;
 $('desktopsHalves').setAttribute('aria-label', S.desktops);
 halfText($('desktopsAll'), S.all);
 halfText($('desktopsThis'), S.thisDesktop);
+$('lightTitle').textContent = S.lightFrom;
+$('lightHalves').setAttribute('aria-label', S.lightFrom);
+halfText($('lightLeft'), S.lightLeft);
+halfText($('lightRight'), S.lightRight);
 $('firstQuestion').textContent = S.firstLaunchQuestion;
 halfText($('firstNotNow'), S.notNow);
 halfText($('firstOpen'), S.openAtLogin);
@@ -273,6 +277,8 @@ function closeSettings() { ui.settingsOpen = false; post({ type: 'settings', ope
 $('loginSwitch').addEventListener('click', () => post({ type: 'login', on: !A.login }));
 $('screensAll').addEventListener('click', () => { if (A.screens !== 'all') choose({ screens: 'all' }); });
 $('screensMain').addEventListener('click', () => { if (A.screens !== 'main') choose({ screens: 'main' }); });
+$('lightLeft').addEventListener('click', () => { if (A.windowOnRight) choose({ windowOnRight: false }); });
+$('lightRight').addEventListener('click', () => { if (!A.windowOnRight) choose({ windowOnRight: true }); });
 $('desktopsAll').addEventListener('click', () => { if (A.desktops !== 'all') choose({ desktops: 'all' }); });
 $('desktopsThis').addEventListener('click', () => { if (A.desktops !== 'thisOne') choose({ desktops: 'thisOne' }); });
 $('firstNotNow').addEventListener('click', () => { A.firstAnswered = true; render(); post({ type: 'firstLaunch', openAtLogin: false }); });
@@ -542,8 +548,8 @@ function render() {
   attr(ownButton, 'aria-label', ui.pickerOpen ? `${S.ownWall}, ${S.open}` : S.ownWall);
 
   // scenes, plants, switches, weather
-  sceneButtons.forEach(({ b, img }, sc) => { attr(b, 'aria-pressed', sc === A.scene); const src = sceneThumb(sc); if (img.getAttribute('src') !== src) img.src = src; });
-  plantButtons.forEach(({ b, img }, i) => { attr(b, 'aria-pressed', PLANTS[i] === A.plant); const src = thumb(`plant-${PLANTS[i]}`); if (img.getAttribute('src') !== src) img.src = src; });
+  sceneButtons.forEach(({ b, img }, sc) => { attr(b, 'aria-pressed', sc === A.scene); b.classList.toggle('mirrored', !!A.windowOnRight && (sc === 1 || sc === 2)); const src = sceneThumb(sc); if (img.getAttribute('src') !== src) img.src = src; });
+  plantButtons.forEach(({ b, img }, i) => { attr(b, 'aria-pressed', PLANTS[i] === A.plant); b.classList.toggle('mirrored', !!A.windowOnRight); const src = thumb(`plant-${PLANTS[i]}`); if (img.getAttribute('src') !== src) img.src = src; });
   attr($('followSwitch'), 'aria-checked', A.follow);
   attr($('liveSwitch'), 'aria-checked', false);
   const offered = choices(A.scene), shown = shownWeather(A.scene);
@@ -562,6 +568,8 @@ function render() {
   attr($('loginSwitch'), 'aria-checked', !!A.login);
   attr($('screensAll'), 'aria-pressed', A.screens !== 'main');
   attr($('screensMain'), 'aria-pressed', A.screens === 'main');
+  attr($('lightLeft'), 'aria-pressed', !A.windowOnRight);
+  attr($('lightRight'), 'aria-pressed', !!A.windowOnRight);
   $('desktopsGroup').hidden = !A.desktopsOffered;
   $('desktopsLine').hidden = !A.desktopsOffered;
   attr($('desktopsAll'), 'aria-pressed', A.desktops !== 'thisOne');
@@ -607,10 +615,12 @@ function layout() {
   const r = (e) => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.width, b.height].map((v) => Math.round(v * 100) / 100); };
   const out = { card: r(card), arc: r(arcBox), pad: r(pad), wave: r($('wave')), dial: r($('dial')), follow: r($('followSwitch')), live: r($('liveSwitch')),
     gear: r($('gear')), quit: r($('quit')), back: r($('settingsBack')), login: r($('loginSwitch')),
-    screensAll: r($('screensAll')), screensMain: r($('screensMain')), desktopsAll: r($('desktopsAll')), desktopsThis: r($('desktopsThis')),
+    screensAll: r($('screensAll')), screensMain: r($('screensMain')), lightLeft: r($('lightLeft')), lightRight: r($('lightRight')), desktopsAll: r($('desktopsAll')), desktopsThis: r($('desktopsThis')),
     firstNotNow: r($('firstNotNow')), firstOpen: r($('firstOpen')), own: r(ownButton), shadeOn: r($('shadeOn')), shadeOff: r($('shadeOff')),
     arcGeometry: ARC, picker: ui.pickerOpen, settings: ui.settingsOpen, time: $('time').textContent,
-    checked: { follow: A.follow, login: !!A.login, screensMain: A.screens === 'main', desktopsThis: A.desktops === 'thisOne',
+    checked: { follow: A.follow, login: !!A.login, screensMain: A.screens === 'main', lightRight: !!A.windowOnRight,
+      mirroredScenes: sceneButtons.map(({ b }, i) => b.classList.contains('mirrored') ? i : -1).filter((i) => i >= 0).join(','),
+      mirroredPlants: plantButtons.every(({ b }) => b.classList.contains('mirrored')), desktopsThis: A.desktops === 'thisOne',
       desktopsOffered: !!A.desktopsOffered, first: !A.firstAnswered, ink: inkNow, weather: shownWeather(A.scene),
       scene: A.scene, wall: A.wall, plant: A.plant, ownThumbs: A.ownThumbs, liveLook: A.liveLook, glass: A.glass } };
   sceneButtons.forEach(({ b }, i) => { out[`scene${i}`] = r(b); });

@@ -70,6 +70,8 @@ static class Wall
             ["plant"] = s.Plant,
             ["cloud"] = cloud,
             ["weather"] = weather,
+            // Light from: Right mirrors only the scenes with a window (WallpaperState.mirrored on the Mac)
+            ["mirror"] = s.WindowOnRight && s.Scene is 1 or 2,
         };
     }
 }
