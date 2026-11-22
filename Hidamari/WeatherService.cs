@@ -24,11 +24,11 @@ sealed record WeatherAnswer(WeatherNow Weather, string Journal);
 sealed class MetSource : IWeatherSource
 {
     /// MET's terms must be read and accepted by the person who makes the app before it may ask MET at all (their
-    /// rule). Until then the app uses the test source and this stays false.
-    public const bool Accepted = false;
+    /// rule). Ed accepted them on 22 Nov 2026. The checks still use the test source.
+    public const bool Accepted = true;
 
     const string Url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?";
-    /// The app's name, its version and where MET can reach whoever made it (TEMP: the contact is not settled yet).
+    /// The app's name, its version and where MET can reach whoever made it: the site, whose Imprint has the contact (Ed, 22 Nov).
     public static readonly string UserAgent = $"Hidamari/{Program.Version} (Windows; +https://hidamari.tsarionov.com)";
 
     static readonly HttpClient http = MakeClient();

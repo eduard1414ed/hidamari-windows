@@ -54,7 +54,7 @@ sealed class Surroundings : IDisposable
     {
         this.settings = settings; this.now = now; this.redraw = redraw; this.changed = changed; this.push = push;
         this.checkMode = checkMode;
-        // MET's terms say the person who makes the app accepts them; until then, and always in the checks, the test source
+        // MET Norway (its terms accepted by Ed, 22 Nov 2026); in the checks always the test source, never a real request
         source = MetSource.Accepted && !checkMode ? new MetSource(Path.Combine(Log.Folder, "met.json")) : new TestSource();
         Zones.Note = s => Log.Write($"place: {s}");
         LoadWeather();

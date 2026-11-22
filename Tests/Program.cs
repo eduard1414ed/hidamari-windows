@@ -135,6 +135,12 @@ At("2026-11-22T08:10:00Z", "before the first step: the first one", h => h != nul
 At("2026-11-22T14:00:00Z", "nothing: more than an hour after the last hourly step", h => h == null);
 At("2026-11-25T03:00:00Z", "a 6-hour step: snow from next_6_hours", h => h != null && h.Weather.Kind == WeatherKind.Snow && h.Symbol == "heavysnow");
 At("2026-11-25T07:00:00Z", "nothing: past the 6 hours of the last step", h => h == null);
+// a real answer: Chicago, asked on 22 Nov 2026 at 18:13 UTC (data: MET Norway, CC BY 4.0); it was raining there then
+var real = File.ReadAllText(Path.Combine(here, "met", "real-chicago.json"));
+var rh = MetForecast.At(real, DateTimeOffset.Parse("2026-11-22T18:13:00Z", inv));
+Result("MET: a real answer is read (Chicago, 22 Nov 2026 18:13 UTC)",
+    rh != null && rh.Time == DateTimeOffset.Parse("2026-11-22T18:00:00Z", inv) && rh.Symbol == "lightrain" && Math.Abs(rh.Weather.Cloud - 1.0) < 1e-9 && rh.Weather.Kind == WeatherKind.Rain && rh.Weather.Wind is > 0,
+    rh == null ? "nothing for that moment" : $"step {rh.Time:HH:mm}, {rh.Weather}, symbol {rh.Symbol}, precipitation {rh.Precipitation?.ToString(inv) ?? "none"} mm; expected 18:00, cloud 1.00, rain, lightrain");
 Result("MET: the point goes out with two decimals", MetForecast.Query(52.520008, 13.404954) == "lat=52.52&lon=13.4" && MetForecast.Query(-33.8688, 151.2093) == "lat=-33.87&lon=151.21",
     $"{MetForecast.Query(52.520008, 13.404954)}; {MetForecast.Query(-33.8688, 151.2093)}");
 Result("MET: a broken answer is no weather, not a crash", Try(() => MetForecast.At("{\"type\":\"Feature\"}", DateTimeOffset.UtcNow) == null), "read as nothing");
