@@ -83,7 +83,7 @@ button { font: inherit; }
 .search-row .slot-icon svg { display: block; fill: var(--ink); }
 .search-row .title { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--ink); }
 .search-row .subtitle { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: var(--soft); }
-/* one of the ways offered for a place Windows does not give: a small button to Windows' location settings */
+/* when Windows does not give the place: a small button to Windows' location settings, under Current Location */
 .location-settings { flex: none; align-self: flex-start; margin: 2px 0 0 31px; padding: 4px 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); }
 .location-settings[hidden] { display: none; }
 .time { font-size: 26px; font-weight: 300; letter-spacing: -0.26px; font-variant-numeric: tabular-nums; line-height: 31px; }
@@ -174,9 +174,8 @@ button { font: inherit; }
 
 /* the bottom: the gear and Quit */
 .bottom { display: flex; justify-content: flex-end; align-items: center; margin-top: 10px; }
-.credits { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
-.credits[hidden] { display: none; }
-.credit-link { padding: 1px 0; font-family: var(--system); font-size: 8px; line-height: 10px; color: var(--soft); white-space: nowrap; }
+.credits { display: flex; align-items: baseline; font-family: var(--system); font-size: 8px; line-height: 10px; color: var(--soft); white-space: nowrap; }
+.credit-link { padding: 1px 0; }
 .gear { display: flex; padding: 3px; margin-right: 10px; opacity: 0.55; }
 .gear svg { display: block; }
 .quit { font-family: var(--mono); font-size: 10px; line-height: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); padding: 4px 0; }

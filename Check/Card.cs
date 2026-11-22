@@ -920,17 +920,8 @@ static partial class Check
                 { Shot($"glass-{glass}-{when}", h, m); Command(run, new { @do = "close" }); }
             }
             Command(run, new { @do = "glass", glass = "plain" });
-            // where the weather comes from: the ways and the words offered (TEMP), with Live weather on
-            Command(run, new { @do = "choose", type = "set", change = new { live = true } });
-            var words = new[] { ("a", "Data from MET Norway", "Places from GeoNames"), ("b", "Weather: MET Norway", "Cities: GeoNames"), ("c", "MET Norway", "GeoNames") };
-            foreach (var (k, weather, places) in words)
-            {
-                Command(run, new { @do = "credit", weather, places });
-                Shot($"credit-settings-{k}", 12, 10, l => Native.Click(l.At_("gear")), x => x.Settings); Command(run, new { @do = "close" });
-            }
-            Command(run, new { @do = "credit", weather = words[0].Item2, places = words[0].Item3 });
-            Shot("credit-settings-night", 22, 40, l => Native.Click(l.At_("gear")), x => x.Settings); Command(run, new { @do = "close" });
-            Command(run, new { @do = "choose", type = "set", change = new { live = false } });
+            // the settings' last line, where the weather and the cities come from, at night too
+            Shot("settings-night", 22, 40, l => Native.Click(l.At_("gear")), x => x.Settings); Command(run, new { @do = "close" });
             // the settings last: turning Launch at login on makes Windows show a notice in the corner a while later,
             // over the pictures after it
             Command(run, new { @do = "choose", type = "login", on = true });

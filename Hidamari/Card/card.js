@@ -29,8 +29,7 @@ let A = {
   follow: true, pinned: 720, weather: 'clear',
   screens: 'all', desktops: 'all', desktopsOffered: false, windowOnRight: false, login: false, firstAnswered: true,
   shown: Date.now(), now: Date.now(), place: { name: 'Berlin', country: 'Germany', lat: 52.52, lng: 13.405, tz: 'Europe/Berlin' },
-  placeMode: 'automatic', locationUnavailable: false, live: true, locationButton: false,
-  credit: { weather: '', places: '' },
+  placeMode: 'automatic', locationUnavailable: false, live: true,
   ownThumbs: 0, glass: 'plain', anchor: 'bottom', insets: { left: 0, top: 0, right: 0, bottom: 0 }, check: false,
 };
 /** What only the open card knows. */
@@ -330,7 +329,7 @@ function pick(line) {
 }
 let rowsKey = '';
 function renderRows() {
-  const key = JSON.stringify([search.results, A.locationUnavailable && A.locationButton]);
+  const key = JSON.stringify([search.results, !!A.locationUnavailable]);
   if (key !== rowsKey) {
     rowsKey = key;
     searchRows.textContent = '';
@@ -348,7 +347,7 @@ function renderRows() {
       searchRows.appendChild(b);
     };
     row(0, S.currentLocation, null, true);
-    if (A.locationUnavailable && A.locationButton) {
+    if (A.locationUnavailable) {
       const b = el('button', 'location-settings', { type: 'button' });
       b.textContent = S.openLocationSettings;
       b.addEventListener('click', () => post({ type: 'locationSettings' }));
@@ -649,9 +648,8 @@ function render() {
   attr($('followSwitch'), 'aria-checked', A.follow);
   attr($('liveSwitch'), 'aria-checked', !!A.live);
   $('weather').classList.toggle('live', !!A.live);
-  // where the weather and the cities come from: in the settings only
-  const cr = A.credit || {};
-  text($('creditsMet'), cr.weather || ''); text($('creditsGeo'), cr.places || '');
+  // where the weather and the cities come from: the last line of the settings
+  text($('creditsMet'), S.creditWeather); text($('creditsGeo'), S.creditPlaces);
   const offered = choices(A.scene), shown = shownWeather(A.scene);
   weatherButtons.forEach(({ slot: s, b }, i) => {
     const w = WEATHER[i];

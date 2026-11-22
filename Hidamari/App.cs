@@ -44,10 +44,6 @@ sealed class App : ApplicationContext
     DateTime lastSelect;
     // check mode only: the app's clock runs this far from the real one, for the card's pictures at given times
     TimeSpan clockShift;
-    // the words that say where the weather and the cities come from (in the settings): not decided yet, so the
-    // check can show each (TEMP)
-    object credit = new { weather = Strings.CreditWeather, places = Strings.CreditPlaces };
-    bool locationButton;
     public int ExitCode { get; private set; }
 
     /// Chosen from the measurements on GitHub's machines: the engine is put to
@@ -452,8 +448,6 @@ sealed class App : ApplicationContext
             ["placeMode"] = settings.PlaceMode,
             ["locationUnavailable"] = around.LocationUnavailable,
             ["live"] = settings.LiveWeather,
-            ["credit"] = credit,
-            ["locationButton"] = locationButton,
             ["ownThumbs"] = ownThumbs,
         };
     }
@@ -748,15 +742,6 @@ sealed class App : ApplicationContext
                     card.Close("check: another glass");
                     card.SetGlass(Enum.Parse<Glass>(c.GetProperty("glass").GetString()!, true));
                     break;
-                case "credit":
-                    credit = new
-                    {
-                        weather = c.TryGetProperty("weather", out var cw) ? cw.GetString() : Strings.CreditWeather,
-                        places = c.TryGetProperty("places", out var cp) ? cp.GetString() : Strings.CreditPlaces,
-                    };
-                    card.Push();
-                    break;
-                case "locationButton": locationButton = c.GetProperty("on").GetBoolean(); card.Push(); break;
                 case "choose": OnChosen(c.GetProperty("type").GetString()!, c); break;
                 case "push": card.Push(); break;
                 case "weather":

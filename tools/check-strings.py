@@ -3,7 +3,8 @@
 
 Every text in Hidamari/Strings.cs has the name of a text in shared/Strings.swift (the Mac app's) with a capital
 first letter (FollowSun = followSun) and must say exactly the same. A text that is not on the Mac is allowed only
-with TEMP in its comment, which means it is not approved yet. Every text the card's page asks for
+with TEMP in its comment, which means it is not approved yet, or with "Windows only", which means it was approved
+for Windows alone. Every text the card's page asks for
 (S.something in Hidamari/Card/card.js) must be in Strings.cs.
 
 Run by the GitHub check before the app is built; exits with an error and the reason when something differs.
@@ -53,18 +54,18 @@ def cs_texts():
             parsed = {int(k): t for k, t in re.findall(r'\[(\d+)\]\s*=\s*"([^"]*)"', value)}
         else:
             parsed = re.findall(r'"([^"]*)"', value)
-        out[name[0].lower() + name[1:]] = (parsed, "TEMP" in comment)
+        out[name[0].lower() + name[1:]] = (parsed, "TEMP" in comment, "Windows only" in comment)
     return out
 
 
 def main():
     mac, win = swift_texts(), cs_texts()
     errors = []
-    for key, (value, temp) in win.items():
+    for key, (value, temp, windows) in win.items():
         mac_key = RENAMED.get(key, key)
         if mac_key not in mac:
-            if not temp:
-                errors.append(f"{key}: not a text of the Mac app and not marked TEMP")
+            if not temp and not windows:
+                errors.append(f"{key}: not a text of the Mac app and not marked TEMP or Windows only")
             continue
         if mac[mac_key] != value:
             errors.append(f"{key}: {value!r} on Windows, {mac[mac_key]!r} on the Mac ({mac_key})")
@@ -73,7 +74,7 @@ def main():
         errors.append(f"card.js uses S.{key}, which Strings.cs does not have")
     if errors:
         sys.exit("check-strings:\n  " + "\n  ".join(errors))
-    temp = sorted(k for k, (_, t) in win.items() if t)
+    temp = sorted(k for k, (_, t, _w) in win.items() if t)
     print(f"check-strings: {len(win)} texts match the Mac app" + (f"; TEMP: {', '.join(temp)}" if temp else "; none TEMP"))
 
 

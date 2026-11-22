@@ -32,12 +32,13 @@ static class Strings
     /// the city search: its first line goes back to finding the place by itself
     public const string CurrentLocation = "Current Location";
     public const string SearchCity = "Search for a city";
-    /// TEMP: one of the ways offered when Windows does not give the place: a button to Windows' location settings
+    /// TEMP: when Windows does not give the place, the button to Windows' location settings in the city search
     public const string OpenLocationSettings = "Open location settings";
-    /// TEMP: where the live weather comes from (MET Norway asks for it), small, in the settings
-    public const string CreditWeather = "Data from MET Norway";
-    /// TEMP: where the list of cities comes from (GeoNames asks for it), in the settings
-    public const string CreditPlaces = "Places from GeoNames";
+    /// Windows only: where the live weather and the list of cities come from (MET Norway and GeoNames ask for it),
+    /// "MET Norway, GeoNames" as the settings' last line
+    public const string CreditWeather = "MET Norway";
+    /// Windows only: see CreditWeather
+    public const string CreditPlaces = "GeoNames";
 
     // ---------- only heard with a screen reader ----------
     public const string TimeOfDay = "Time of day";

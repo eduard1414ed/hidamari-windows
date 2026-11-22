@@ -76,19 +76,15 @@ static partial class Check
                     said != null && l.Str("placeLabel").Contains("Location unavailable") && Math.Abs(Num(st, "lat") - 52.52) < 0.01,
                     $"journal: {said ?? "nothing within 60 s"}; the place's label: {l.Str("placeLabel")}; wall at {Num(st, "lat")}, {Num(st, "lng")}");
                 Pictures.Crop(Pictures.Shot(null), l.Window, "card/location-unavailable.png");
-                // one of the ways offered: a button to Windows' location settings in the search
-                Command(run, new { @do = "locationButton", on = true });
-                Thread.Sleep(800);
-                l = ReadLayout(run) ?? l;
+                // the button to Windows' location settings in the search
                 var s = OpenSearch(run, l);
                 if (s != null)
                 {
                     Pictures.Crop(Pictures.Shot(null), s.Window, "card/location-unavailable-button.png");
-                    Result(g, "the button to Windows' location settings, when it is offered", s.Has("locationSettings"), s.Has("locationSettings") ? "shown under Current Location" : "not shown");
+                    Result(g, "the button to Windows' location settings is in the search", s.Has("locationSettings"), s.Has("locationSettings") ? "shown under Current Location" : "not shown");
                     Esc();
                     l = LayoutAfter(run, DateTime.UtcNow.AddSeconds(-0.2), x => !SearchOpen(x)) ?? s;
                 }
-                Command(run, new { @do = "locationButton", on = false });
             }
             else
                 Result(g, "Windows gives a place here: it is named after the nearest city", "INFO", $"{said}; the card shows {l.Str("place")}");
