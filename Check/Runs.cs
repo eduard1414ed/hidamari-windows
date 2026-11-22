@@ -26,6 +26,9 @@ sealed class Run : IDisposable
         psi.Environment["HIDAMARI_CHECK"] = folder;
         psi.Environment["HIDAMARI_CHECK_PNG"] = png;
         if (policy != null) psi.Environment["HIDAMARI_ENGINE"] = policy;
+        // stage 4: Direct3D unless a run asks for something else (the drawing is remembered in the settings; a run
+        // that passes its own `env`, even an empty one, gets what the settings say)
+        if (env == null) psi.Environment["HIDAMARI_RENDERER"] = "direct3d";
         foreach (var (k, v) in env ?? new()) psi.Environment[k] = v;
         var p = Process.Start(psi)!;
         Check.Say($"app started{(policy != null ? $" ({policy})" : "")}, pid {p.Id}");

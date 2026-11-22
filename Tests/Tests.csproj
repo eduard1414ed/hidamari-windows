@@ -14,6 +14,8 @@
     <Compile Include="..\Hidamari\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
     <None Include="..\Hidamari\Resources\cities.gz" Link="cities.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Include="met\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- stage 4: the shader's numbers for 743 states, worked out by the Mac's Swift (tools/windows-stage4.swift) -->
+    <None Include="lighting.json.gz" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

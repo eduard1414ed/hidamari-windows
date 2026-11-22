@@ -60,7 +60,7 @@ jobs:
         # windows-2025 (= windows-latest): Windows 11 24H2 code base; windows-2022: the Windows 10 / 11 21H2 code base
         os: [windows-2025, windows-2022]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 110
+    timeout-minutes: 200
     steps:
       - uses: actions/checkout@v5
         with:

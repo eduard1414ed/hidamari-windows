@@ -1,0 +1,1404 @@
+[
+  {
+    "height" : 1350,
+    "name" : "dapples-night-fullmoon-wall0-rough1-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 0,
+      "time" : 1767313800000,
+      "utcOffset" : 60,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-sunrise-wall1-rough0-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 0,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782010200000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-morning-wall2-rough1-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 0,
+      "time" : 1782021600000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wall3-rough2-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 2,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wall4-rough1-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-sunset-wall5-rough2-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 2,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 0,
+      "time" : 1782070200000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-night-newmoon-own-pale-cool-rough0-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 0.29999999999999999,
+        "L" : 0.90000000000000002,
+        "rough" : 0,
+        "shade" : null,
+        "x" : 0.81999999999999995,
+        "y" : 0.75
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 0,
+      "time" : 1768773600000,
+      "utcOffset" : 60,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-night-fullmoon-own-warm-saturated-rough1-frost",
+    "page" : {
+      "cloud" : 0.5,
+      "custom" : {
+        "k" : 0.5,
+        "L" : 0.81999999999999995,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.45000000000000001,
+        "y" : 0
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1767313800000,
+      "utcOffset" : 60,
+      "wall" : -1,
+      "weather" : 2
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant5-sunrise-own-shade-rough0-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 0,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 1,
+      "time" : 1782010200000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant0-morning-own-light-0-rough1-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 0,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 1,
+      "time" : 1782021600000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-noon-own-light-1-rough2-rain",
+    "page" : {
+      "cloud" : 0.80000000000000004,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 2,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 1
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant5-golden-wall0-rough1-frost",
+    "page" : {
+      "cloud" : 0.5,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 1,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 2
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant0-sunset-wall1-rough2-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 2,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 1,
+      "time" : 1782070200000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-night-newmoon-wall2-rough0-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 0,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1768773600000,
+      "utcOffset" : 60,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-night-fullmoon-wall3-rough1-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 2,
+      "time" : 1767313800000,
+      "utcOffset" : 60,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-sunrise-wall4-rough0-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 0,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 2,
+      "time" : 1782010200000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-morning-wall5-rough1-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 2,
+      "time" : 1782021600000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-noon-own-pale-cool-rough2-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.29999999999999999,
+        "L" : 0.90000000000000002,
+        "rough" : 2,
+        "shade" : null,
+        "x" : 0.81999999999999995,
+        "y" : 0.75
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 2,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-golden-own-warm-saturated-rough1-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 0.5,
+        "L" : 0.81999999999999995,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.45000000000000001,
+        "y" : 0
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 2,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-sunset-own-shade-rough2-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 2,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 2,
+      "time" : 1782070200000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-night-newmoon-own-light-0-rough0-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0,
+        "L" : 0.88,
+        "rough" : 0,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 2,
+      "time" : 1768773600000,
+      "utcOffset" : 60,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-night-fullmoon-own-light-1-rough1-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 3,
+      "time" : 1767313800000,
+      "utcOffset" : 60,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-sunrise-wall0-rough0-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 0,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782010200000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-morning-wall1-rough1-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 3,
+      "time" : 1782021600000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wall2-rough2-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 2,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wall3-rough1-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-sunset-wall4-rough2-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 2,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 3,
+      "time" : 1782070200000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-night-newmoon-wall5-rough0-cloudy",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 0,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 3,
+      "time" : 1768773600000,
+      "utcOffset" : 60,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant0-morning-wall0-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 1,
+      "time" : 1782021600000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant0-noon-wall1-cloudy",
+    "page" : {
+      "cloud" : 0.59999999999999998,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1.5,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 1,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant0-golden-wall2-rain",
+    "page" : {
+      "cloud" : 0.80000000000000004,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 1,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 1
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant0-night-fullmoon-wall3-frost",
+    "page" : {
+      "cloud" : 0.5,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 0,
+      "scene" : 1,
+      "time" : 1768869000000,
+      "utcOffset" : 60,
+      "wall" : 3,
+      "weather" : 2
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-noon-wall4-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-golden-wall5-cloudy",
+    "page" : {
+      "cloud" : 0.59999999999999998,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1.5,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-night-fullmoon-wall0-rain",
+    "page" : {
+      "cloud" : 0.80000000000000004,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1767313800000,
+      "utcOffset" : 60,
+      "wall" : 0,
+      "weather" : 1
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-morning-wall1-frost",
+    "page" : {
+      "cloud" : 0.5,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1768892400000,
+      "utcOffset" : 60,
+      "wall" : 1,
+      "weather" : 2
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant5-golden-wall2-clear",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 1,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant5-night-fullmoon-wall3-cloudy",
+    "page" : {
+      "cloud" : 0.59999999999999998,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1.5,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 1,
+      "time" : 1767313800000,
+      "utcOffset" : 60,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant5-morning-wall4-rain",
+    "page" : {
+      "cloud" : 0.80000000000000004,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 1,
+      "time" : 1782021600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 1
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant5-noon-wall5-frost",
+    "page" : {
+      "cloud" : 0.5,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 5,
+      "scene" : 1,
+      "time" : 1768910400000,
+      "utcOffset" : 60,
+      "wall" : 5,
+      "weather" : 2
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-noon-own-pale-cool",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.29999999999999999,
+        "L" : 0.90000000000000002,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.81999999999999995,
+        "y" : 0.75
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 2,
+      "time" : 1775815200000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-own-warm-saturated",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.5,
+        "L" : 0.81999999999999995,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.45000000000000001,
+        "y" : 0
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1775816100000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-noon-own-shade",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 1,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 2,
+      "time" : 1775817000000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-own-light-0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1775817900000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-noon-own-light-1",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "plant" : 2,
+      "scene" : 2,
+      "time" : 1775818800000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-night-fullmoon-own-warm-saturated-rough1-frost-right",
+    "page" : {
+      "cloud" : 0.5,
+      "custom" : {
+        "k" : 0.5,
+        "L" : 0.81999999999999995,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.45000000000000001,
+        "y" : 0
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1767313800000,
+      "utcOffset" : 60,
+      "wall" : -1,
+      "weather" : 2
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-noon-own-light-1-rough2-rain-right",
+    "page" : {
+      "cloud" : 0.80000000000000004,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 2,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 1
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-night-newmoon-wall2-rough0-cloudy-right",
+    "page" : {
+      "cloud" : 0.65000000000000002,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 0,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1768773600000,
+      "utcOffset" : 60,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-morning-wall5-rough1-clear-right",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 1,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.40000000000000002,
+        "y" : 0.29999999999999999
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 2,
+      "scene" : 2,
+      "time" : 1782021600000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-sunset-own-shade-rough2-clear-right",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 2,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 2,
+      "scene" : 2,
+      "time" : 1782070200000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant0-noon-wall1-cloudy-right",
+    "page" : {
+      "cloud" : 0.59999999999999998,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 1.5,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 0,
+      "scene" : 1,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-noon-wall4-clear-right",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 1,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant2-morning-wall1-frost-right",
+    "page" : {
+      "cloud" : 0.5,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 1,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 2,
+      "scene" : 1,
+      "time" : 1768892400000,
+      "utcOffset" : 60,
+      "wall" : 1,
+      "weather" : 2
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "window-plant5-morning-wall4-rain-right",
+    "page" : {
+      "cloud" : 0.80000000000000004,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 1,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 5,
+      "scene" : 1,
+      "time" : 1782021600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 1
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "blinds-noon-own-shade-right",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.40000000000000002,
+        "L" : 0.85999999999999999,
+        "rough" : 1,
+        "shade" : {
+          "x" : 0.92000000000000004,
+          "y" : 0.14999999999999999
+        },
+        "x" : 0.55000000000000004,
+        "y" : 0.45000000000000001
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : true,
+      "plant" : 2,
+      "scene" : 2,
+      "time" : 1775817000000,
+      "utcOffset" : 120,
+      "wall" : -1,
+      "weather" : 0
+    },
+    "width" : 2160
+  }
+]

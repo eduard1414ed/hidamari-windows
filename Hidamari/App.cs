@@ -917,8 +917,24 @@ sealed class App : ApplicationContext
                     if (animator != null) animator.ClockOffset = c.GetProperty("offset").GetDouble();
                     break;
                 case "lookAgain": UpdateMotion("check: look again"); break;
+                // what Windows would tell: the screen locked, the screens off, sleep, another user (cannot be done for real on GitHub)
+                case "pretend":
+                    switch (c.GetProperty("what").GetString())
+                    {
+                        case "lock": OnSession(WTS_SESSION_LOCK); break;
+                        case "unlock": OnSession(WTS_SESSION_UNLOCK); break;
+                        case "displayOff": OnDisplay(0); break;
+                        case "displayOn": OnDisplay(1); break;
+                        case "sleep": OnSleep(true); break;
+                        case "wake": OnSleep(false); break;
+                        case "away": OnSession(WTS_CONSOLE_DISCONNECT); break;
+                        case "back": OnSession(WTS_CONSOLE_CONNECT); break;
+                        default: throw new InvalidDataException("unknown pretend");
+                    }
+                    break;
                 case "motion": break;   // the state is in the reply
-                case "compare": _ = Compare(c.GetProperty("states").GetString()!, c.GetProperty("out").GetString()!, !c.TryGetProperty("web", out var cw) || cw.GetBoolean()); break;
+                case "compare": _ = Compare(c.GetProperty("states").GetString()!, c.GetProperty("out").GetString()!, !c.TryGetProperty("web", out var cw) || cw.GetBoolean(),
+                    c.TryGetProperty("scale", out var cs) ? cs.GetDouble() : 1); break;
                 case "video": _ = Video(c); break;
                 default: throw new InvalidDataException($"unknown command {what}");
             }
@@ -939,15 +955,16 @@ sealed class App : ApplicationContext
 
     /// The checks: the same states drawn by Direct3D and by the web engine, as PNG files (states: a JSON list of
     /// { name, width, height, page }, page as komorebi.render() takes it, with or without motion).
-    async Task Compare(string statesFile, string outDir, bool web)
+    async Task Compare(string statesFile, string outDir, bool web, double scale)
     {
         var sw = Stopwatch.StartNew();
         int n = 0;
         try
         {
             using var doc = JsonDocument.Parse(File.ReadAllText(statesFile));
-            var list = doc.RootElement.EnumerateArray().Select(e => (name: e.GetProperty("name").GetString()!, w: e.GetProperty("width").GetInt32(),
-                h: e.GetProperty("height").GetInt32(), page: (Dictionary<string, object?>)Plain(e.GetProperty("page"))!)).ToList();
+            // `scale`: smaller frames, where the web engine draws in software and full-size frames would take minutes each
+            var list = doc.RootElement.EnumerateArray().Select(e => (name: e.GetProperty("name").GetString()!, w: (int)Math.Round(e.GetProperty("width").GetInt32() * scale),
+                h: (int)Math.Round(e.GetProperty("height").GetInt32() * scale), page: (Dictionary<string, object?>)Plain(e.GetProperty("page"))!)).ToList();
             Directory.CreateDirectory(Path.Combine(outDir, "d3d"));
             var gpu = d3d?.Gpu ?? throw new InvalidOperationException("Direct3D does not draw now");
             foreach (var s in list)

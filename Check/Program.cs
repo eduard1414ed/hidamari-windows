@@ -47,6 +47,7 @@ static partial class Check
             Part("card memory", CardMemory);
             Part("place", PlaceRun);
             Part("weather", WeatherRun);
+            Part("stage 4", Stage4Run);
             if (full) Part("memory", Variants);
             Part("session end", EndSession);
             Part("Task Manager", KillRun);
@@ -481,7 +482,8 @@ static partial class Check
         foreach (var v in new[] { "probe", "keep", "low", "suspend", "close" })
         {
             var dir = Path.Combine(outDir, "memory", v);
-            using var run = v == "probe" ? Run.Probe(probe, dir) : Run.App(app, dir, v, png: "first");
+            // the four ways of keeping the web engine between frames: the web engine draws (stage 1's comparison)
+            using var run = v == "probe" ? Run.Probe(probe, dir) : Run.App(app, dir, v, png: "first", env: new() { ["HIDAMARI_RENDERER"] = "web" });
             var row = new Dictionary<string, object?> { ["variant"] = v };
             try
             {

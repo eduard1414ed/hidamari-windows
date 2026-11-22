@@ -13,4 +13,9 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- stage 4: the states of the Mac's comparison (tools/windows-stage4.swift export) -->
+    <None Include="stage4\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

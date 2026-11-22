@@ -184,6 +184,137 @@ static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
         "clear 0, cloudy 0.8, rain 0.9 → 0.2 in the window, frost 0.7 → 0.3, rain elsewhere cloudy");
 }
 
+// ---------------- stage 4: the shader's numbers, the same as the Mac's ----------------
+{
+    using var gz = new System.IO.Compression.GZipStream(File.OpenRead(Path.Combine(here, "lighting.json.gz")), System.IO.Compression.CompressionMode.Decompress);
+    using var doc = System.Text.Json.JsonDocument.Parse(gz);
+    int states = 0, off = 0; double worst = 0; string worstAt = "";
+    foreach (var item in doc.RootElement.EnumerateArray())
+    {
+        var i = item.GetProperty("input");
+        var c = i.GetProperty("custom");
+        (double, double)? shade = c.GetProperty("shade").ValueKind == System.Text.Json.JsonValueKind.Object
+            ? (c.GetProperty("shade").GetProperty("x").GetDouble(), c.GetProperty("shade").GetProperty("y").GetDouble()) : null;
+        var m = i.GetProperty("motion");
+        var f = new WallFrameInput
+        {
+            Ms = i.GetProperty("ms").GetDouble(), Minutes = i.GetProperty("minutes").GetDouble(), Lat = i.GetProperty("lat").GetDouble(), Lng = i.GetProperty("lng").GetDouble(),
+            Scene = i.GetProperty("scene").GetInt32(), Wall = i.GetProperty("wall").GetInt32(),
+            Custom = new CustomWall(c.GetProperty("L").GetDouble(), c.GetProperty("x").GetDouble(), c.GetProperty("y").GetDouble(), c.GetProperty("k").GetDouble(), c.GetProperty("rough").GetDouble(), shade),
+            WinPlant = i.GetProperty("winPlant").GetInt32(), Cloud = i.GetProperty("cloud").GetDouble(), Weather = i.GetProperty("weather").GetInt32(),
+            Width = i.GetProperty("width").GetInt32(), Height = i.GetProperty("height").GetInt32(), Mirror = i.GetProperty("mirror").GetBoolean(),
+            Motion = new Motion(m.GetProperty("t").GetDouble(), m.GetProperty("wind").GetDouble(), m.GetProperty("windLeaves").GetDouble()),
+        };
+        var u = WallLighting.Uniforms(f);
+        var s = item.GetProperty("uniforms");
+        double[] A(string k) => s.GetProperty(k).ValueKind == System.Text.Json.JsonValueKind.Array ? s.GetProperty(k).EnumerateArray().Select(x => x.GetDouble()).ToArray() : new[] { s.GetProperty(k).GetDouble() };
+        var pairs = new (string name, double[] cs, double[] swift)[]
+        {
+            ("res", u.Res, A("res")), ("wallH", new[] { u.WallH }, A("wallH")), ("tex", new[] { u.Tex }, A("tex")), ("src", new[] { u.Src }, A("src")),
+            ("corner", new[] { u.Corner }, A("corner")), ("phase", new[] { u.Phase }, A("phase")), ("calm", new[] { u.Calm }, A("calm")), ("depth", u.Depth, A("depth")),
+            ("wt", new[] { u.WT }, A("wt")), ("plantRect", u.PlantRect, A("plantRect")), ("l1", u.L1, A("l1")), ("rough", new[] { u.Rough }, A("rough")),
+            ("c1", u.C1, A("c1")), ("frostBottom", new[] { u.FrostBottom }, A("frostBottom")), ("win1", u.Win1, A("win1")), ("wall", u.WallLin, A("wall")),
+            ("scene", new double[] { u.Scene }, A("scene")), ("amb", u.Amb, A("amb")), ("layers", new double[] { u.Layers }, A("layers")),
+            ("weather", new double[] { u.Weather }, A("weather")), ("t", new[] { u.T }, A("t")), ("wind", new[] { u.Wind }, A("wind")),
+            ("windLeaves", new[] { u.WindLeaves }, A("windLeaves")), ("sunDegrees", new[] { u.SunDegrees }, A("sunDegrees")),
+        };
+        bool bad = s.GetProperty("mirror").GetBoolean() != u.Mirror || s.GetProperty("plant").GetString()!.ToLowerInvariant() != u.Plant.ToString().ToLowerInvariant();
+        foreach (var (name, cs, swift) in pairs)
+        {
+            if (cs.Length != swift.Length) { bad = true; continue; }
+            for (int k = 0; k < cs.Length; k++)
+            {
+                double d = Math.Abs(cs[k] - swift[k]) / Math.Max(1, Math.Abs(swift[k]));
+                if (d > worst) { worst = d; worstAt = $"{item.GetProperty("name").GetString()} {name}[{k}] {cs[k]:R} vs {swift[k]:R}"; }
+                if (d > 1e-9) bad = true;
+            }
+        }
+        states++;
+        if (bad) off++;
+    }
+    Result("the shader's numbers are the Mac's (Swift) for every state", states > 700 && off == 0,
+        $"{states} states (the 119 compared on the screen and 624 more moments, places, walls, motions), {off} differ; largest difference {worst:E1} ({worstAt})");
+}
+
+// ---------------- stage 4: the motion's clock for a day and a week (tools/check-motion.swift, part 2) ----------------
+{
+    ulong seed = 7;
+    ulong Next() { seed += 0x9E3779B97F4A7C15; var z = seed; z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9; z = (z ^ (z >> 27)) * 0x94D049BB133111EB; return z ^ (z >> 31); }
+    double PhaseAt(double now) => WallLighting.Phase(Math.Floor(now / 300) * 5 % 1440);
+    foreach (var (name, kind) in new[] { ("dapples", MotionClock.Kind.Leaves), ("water", MotionClock.Kind.Water) })
+    foreach (var days in new[] { 1.0, 7 })
+    {
+        seed = 7;
+        double wind = 4;
+        var clock = new MotionClock(kind, 0, wind, PhaseAt(0));
+        double maxT = 0, maxJump = 0, lastRate = 0; int fades = 0; bool fading = false; float? lastPh = null;
+        long steps = (long)(days * 86400 * 30);
+        for (long i = 0; i <= steps; i++)
+        {
+            double now = i / 30.0;
+            if (i % (3600 * 30) == 0 && i > 0) wind = Next() % 151 / 10.0;
+            var fr = clock.Frame(now, wind, PhaseAt(now));
+            maxT = Math.Max(maxT, Math.Max(fr.Motion.T, fr.From?.T ?? 0));
+            if (fr.From != null && !fading) fades++;
+            fading = fr.From != null;
+            if (kind == MotionClock.Kind.Water)
+            {
+                float ph = (float)PhaseAt(now) + (float)fr.Motion.T * (0.05f + 2.25f * (float)fr.Motion.Wind);
+                if (lastPh is { } lp)
+                {
+                    double dph = (double)(ph - lp) % (2 * Math.PI);
+                    if (dph > Math.PI) dph -= 2 * Math.PI; if (dph < -Math.PI) dph += 2 * Math.PI;
+                    double expected = MotionClock.Rate(fr.Motion.Wind) / 30;
+                    maxJump = Math.Max(maxJump, Math.Abs(dph - expected) / Math.Max(lastRate / 30, expected));
+                }
+                lastPh = ph; lastRate = MotionClock.Rate(fr.Motion.Wind);
+            }
+        }
+        string span = days == 1 ? "a day" : "a week";
+        if (kind == MotionClock.Kind.Water)
+            Result($"motion: the water's clock runs {span} without a jump", maxT < 2 * Math.PI / 0.05 + 1 && maxJump < 0.02,
+                $"wind changing every hour (0–15 m/s), uPhase every 5 min: largest uT {maxT:F1} s (never more than one turn), largest step off the expected one {100 * maxJump:F4} % of a step");
+        else
+            Result($"motion: the dapples' clock runs {span} and stays small", maxT <= MotionClock.LeavesSpan + MotionClock.Crossfade + 1 && fades > 0,
+                $"largest uT {maxT:F1} s (a new clock every {MotionClock.LeavesSpan / 60:F0} min and with every new wind); {fades} crossfades");
+    }
+    // the still picture stays the approved one: Animation off means no motion at all
+    var still = WallLighting.Uniforms(new WallFrameInput { Ms = 1_781_949_600_000, Minutes = 780, Scene = 0, Width = 2160, Height = 1350 });
+    Result("motion: off, the frame is the still one", still.T == 0 && still.Wind == 0 && still.WindLeaves == 0, "uT 0, uWind 0, uWindLeaves 0");
+    // the water's first moving frame is exactly the still one (the clock lands on the still phase)
+    var wc = new MotionClock(MotionClock.Kind.Water, 100, 4, WallLighting.Phase(780));
+    var w0 = wc.Frame(100, 4, WallLighting.Phase(780));
+    Result("motion: the water starts from the still picture", Math.Abs(w0.Motion.T) < 1e-9, $"first uT {w0.Motion.T:E1}");
+}
+
+// ---------------- stage 4: frames exactly 30 or 15 a second on any screen ----------------
+{
+    var lines = new List<string>(); bool ok = true;
+    foreach (var hz in new[] { 60.0, 75, 90, 120, 144, 165, 240, 48 })
+    foreach (var fps in new[] { 30, 15 })
+    {
+        var slots = new FrameSlots();
+        int n = 0; double secs = 600;
+        for (long k = 0; k < (long)(secs * hz); k++) if (slots.Due(k / hz, fps, 1 / hz)) n++;
+        double rate = n / secs;
+        bool good = Math.Abs(rate - fps) <= (hz < 2 * fps ? 0.5 : 0.01) && slots.Skipped == 0;
+        ok &= hz < fps || good;
+        lines.Add($"{hz:F0} Hz → {rate:F3}");
+    }
+    // a screen whose rate changes (variable refresh): 144 Hz, then 60, then 100
+    var vr = new FrameSlots(); int vn = 0; double t = 0;
+    foreach (var (hz, secs) in new[] { (144.0, 200.0), (60.0, 200.0), (100.0, 200.0) })
+        for (long k = 0; k < (long)(secs * hz); k++) { t += 1 / hz; if (vr.Due(t, 30, 1 / hz)) vn++; }
+    lines.Add($"144→60→100 Hz → {vn / 600.0:F3}");
+    ok &= Math.Abs(vn / 600.0 - 30) < 0.05;
+    // the drawing held up for 100 ms: the frames it missed are counted, the rate goes on
+    var held = new FrameSlots(); int hn = 0;
+    for (long k = 0; k < 60 * 60; k++) { double at = k / 60.0 + (k >= 600 && k < 606 ? 0.1 : 0); if (k >= 600 && k < 606) continue; if (held.Due(at, 30, 1 / 60.0)) hn++; }
+    lines.Add($"held up 100 ms: {held.Skipped} skipped");
+    ok &= held.Skipped >= 2 && held.Skipped <= 4;
+    Result("motion: exactly 30 (mains) or 15 (battery) frames a second whatever the screen's rate", ok, string.Join("; ", lines));
+}
+
 File.WriteAllText(Path.Combine(outDir, "report.md"), report.ToString());
 Console.WriteLine(failed == 0 ? "all passed" : $"{failed} failed");
 return failed == 0 ? 0 : 1;

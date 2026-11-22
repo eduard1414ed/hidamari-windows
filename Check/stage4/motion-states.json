@@ -1,0 +1,1922 @@
+[
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind00-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind00-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind00-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind00-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind04-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind04-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind04-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind04-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind09-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind09-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind09-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind09-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind15-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind15-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind15-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-noon-wind15-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind00-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind00-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind00-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind00-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind04-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind04-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind04-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind04-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind09-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind09-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind09-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind09-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind15-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind15-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind15-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "dapples-golden-wind15-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 0,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind00-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind00-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind00-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind00-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind04-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind04-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind04-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind04-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind09-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind09-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind09-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind09-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind15-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind15-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind15-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-noon-wind15-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782039600000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind00-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind00-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind00-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind00-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.02,
+        "windLeaves" : 0.11142138777997947
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind04-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind04-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind04-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind04-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.064167045264109671,
+        "windLeaves" : 0.15411784521103694
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind09-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind09-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind09-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 4,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind09-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.14674639621271096,
+        "windLeaves" : 0.21225097380479221
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 5,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind15-t00.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 0,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 0,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind15-t01.3",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 1.3,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 1,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind15-t07.9",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 7.9000000000000004,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 2,
+      "weather" : 0
+    },
+    "width" : 2160
+  },
+  {
+    "height" : 1350,
+    "name" : "water-golden-wind15-t61.0",
+    "page" : {
+      "cloud" : 0,
+      "custom" : {
+        "k" : 0.10000000000000001,
+        "L" : 0.88,
+        "rough" : 1,
+        "shade" : null,
+        "x" : 0.5,
+        "y" : 0.80000000000000004
+      },
+      "lat" : 52.520000000000003,
+      "lng" : 13.404999999999999,
+      "mirror" : false,
+      "motion" : {
+        "t" : 61,
+        "wind" : 0.26622888266898326,
+        "windLeaves" : 0.28777888880250257
+      },
+      "plant" : 2,
+      "scene" : 3,
+      "time" : 1782064800000,
+      "utcOffset" : 120,
+      "wall" : 3,
+      "weather" : 0
+    },
+    "width" : 2160
+  }
+]
