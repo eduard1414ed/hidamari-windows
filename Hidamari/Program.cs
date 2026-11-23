@@ -32,7 +32,9 @@ static class Program
         }
         using var again = new EventWaitHandle(false, EventResetMode.AutoReset, AgainName);
         Log.Start();
-        Log.Write($"Hidamari {typeof(Program).Assembly.GetName().Version} for Windows, pid {Environment.ProcessId}, {Environment.ProcessPath}");
+        Log.Write($"Hidamari {typeof(Program).Assembly.GetName().Version} for Windows, pid {Environment.ProcessId}, {Environment.ProcessPath}" +
+                  (Package.IsPackaged ? $", package {Package.FamilyName} {Package.Version}" : ", not packaged"));
+        Log.Write($"files: {Log.Folder}");
         App? app = null;
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += (_, e) => Log.Write($"error: {e.Exception}");

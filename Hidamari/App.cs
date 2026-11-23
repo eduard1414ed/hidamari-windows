@@ -79,13 +79,15 @@ sealed class App : ApplicationContext
         }
         renderer = MakeRenderer(settings.Renderer, "start");
         around = new Surroundings(settings, Now, why => WantDraw(why), Changed, () => { if (card.IsOpen) card.Push(); }, checkFolder != null);
-        LoginItem.FollowMove();
+        _ = LoginStart();
+        Package.RestartAfterUpdate();
         messages = new Messages(this);
         tray = new Tray(messages.Handle, () => Quit("Quit in the tray menu"), OnSelect);
         card = new Card(engine.SharedEnvironment, CardState, tray.Rect, checkFolder != null);
         engine.SharedWith = () => card.EngineRunning;
         card.Chosen += (type, m) => { try { OnChosen(type, m); } catch (Exception e) { Log.Write($"error: card {type}: {e}"); } };
-        card.Opened += () => { wakeWanted = true; Kick(); around.OnCardOpened(); };
+        card.Opened += () => { wakeWanted = true; Kick(); around.OnCardOpened(); _ = LoginLook("the card opened"); };
+        card.NoRuntime += why => ui.Post(_ => NoWebView2(why), null);
         card.Closed += _ => { dragging = false; restWanted = true; Kick(); StartAround("the first launch's card closed"); };
         card.Layout += SaveLayout;
         // Settings → Desktops (All / This one) is not offered: Windows does not tell an app which virtual desktop its windows are on
@@ -663,18 +665,12 @@ sealed class App : ApplicationContext
                 Locator.OpenSettings();
                 break;
             case "login":
-                LoginItem.Set(m.GetProperty("on").GetBoolean(), "Settings → Launch at login");
-                settings.FirstLaunchAnswered = true;
-                Changed($"Launch at login {(LoginItem.IsOn ? "on" : "off")}");
-                card.Push();
+                _ = LoginSet(m.GetProperty("on").GetBoolean(), "Settings → Launch at login", null);
                 break;
             case "firstLaunch":
             {
                 bool open = m.GetProperty("openAtLogin").GetBoolean();
-                if (open) LoginItem.Set(true, "the first launch's question");
-                settings.FirstLaunchAnswered = true;
-                Changed($"first launch answered: {(open ? "Open at login" : "Not now")}");
-                card.Push();
+                _ = LoginSet(open ? true : null, "the first launch's question", $"first launch answered: {(open ? "Open at login" : "Not now")}");
                 break;
             }
             default:
@@ -791,6 +787,73 @@ sealed class App : ApplicationContext
     }
 
     /// A settings change: saved a moment later (several come together), told to the card, written in the journal.
+    // ---------- no WebView2: the wall goes on, the card cannot open ----------
+
+    bool askingWebView2;
+
+    /// A Windows dialog in place of the card: what is missing, and a button to Microsoft's download of the WebView2
+    /// runtime (the evergreen bootstrapper, the same link Microsoft gives to apps). The texts are TEMP (Strings.cs).
+    void NoWebView2(string why)
+    {
+        if (askingWebView2) return;
+        askingWebView2 = true;
+        try
+        {
+            Log.Write($"card: cannot open ({why}): no WebView2 runtime; the wall goes on, the person is told");
+            var get = new TaskDialogButton(Strings.WebView2Get);
+            var notNow = new TaskDialogButton(Strings.NotNow);
+            var page = new TaskDialogPage
+            {
+                Caption = Strings.Name,
+                Heading = Strings.WebView2Heading,
+                Text = Strings.WebView2Text,
+                Buttons = { get, notNow },
+                DefaultButton = get,
+                AllowCancel = true,
+                SizeToContent = true,
+            };
+            var answer = TaskDialog.ShowDialog(page, TaskDialogStartupLocation.CenterScreen);
+            if (answer == get)
+            {
+                const string url = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+                Log.Write($"card: WebView2's download opened ({url})");
+                try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+                catch (Exception e) { Log.Write($"card: could not open {url} ({e.Message})"); }
+            }
+            else Log.Write("card: WebView2 not now");
+        }
+        catch (Exception e) { Log.Write($"error: the WebView2 dialog: {e}"); }
+        finally { askingWebView2 = false; }
+    }
+
+    // ---------- Launch at login (LoginItem.cs): the package's startup task answers later, so these wait for it ----------
+
+    async Task LoginStart()
+    {
+        try { await LoginItem.Start(); if (card.IsOpen) card.Push(); }
+        catch (Exception e) { Log.Write($"error: login: {e}"); }
+    }
+
+    /// The person may have changed it in Task Manager or Settings since: the switch shows what Windows says now.
+    async Task LoginLook(string why)
+    {
+        try { if (await LoginItem.Refresh(why) && card.IsOpen) card.Push(); }
+        catch (Exception e) { Log.Write($"error: login: {e}"); }
+    }
+
+    /// `on` null: left as it is (the first launch's Not now).
+    async Task LoginSet(bool? on, string why, string? said)
+    {
+        try
+        {
+            if (on is bool b) await LoginItem.Set(b, why);
+            settings.FirstLaunchAnswered = true;
+            Changed(said ?? $"Launch at login {(LoginItem.IsOn ? "on" : "off")}");
+            card.Push();
+        }
+        catch (Exception e) { Log.Write($"error: login: {e}"); }
+    }
+
     void Changed(string what)
     {
         Log.Write($"settings: {what}");
@@ -883,7 +946,7 @@ sealed class App : ApplicationContext
                     card.SetGlass(Enum.Parse<Glass>(c.GetProperty("glass").GetString()!, true));
                     break;
                 case "choose": OnChosen(c.GetProperty("type").GetString()!, c); break;
-                case "push": card.Push(); break;
+                case "push": card.Push(); _ = LoginLook("check"); break;
                 case "weather":
                 {
                     var t = around.Test ?? throw new InvalidOperationException("the weather comes from MET, not from the test source");

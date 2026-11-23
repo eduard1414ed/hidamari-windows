@@ -1,12 +1,12 @@
 namespace Hidamari;
 
-/// The journal: %LOCALAPPDATA%\Hidamari\hidamari.log. Each launch starts a new one; the last few launches are kept
+/// The journal: hidamari.log in the app's own folder (Package.DataFolder: %LOCALAPPDATA%\Hidamari for Hidamari.exe,
+/// the package's LocalState when installed from the Store). Each launch starts a new one; the last few launches are kept
 /// as hidamari.1.log (the one before) … hidamari.4.log, so a journal sent after a restart still shows what happened.
 /// A launch that runs for weeks never grows its journal past a few megabytes: the oldest half is dropped.
 static class Log
 {
-    public static string Folder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hidamari");
+    public static string Folder { get; } = Package.DataFolder;
     public static string FilePath => Path.Combine(Folder, "hidamari.log");
     const int Kept = 4;
     const long MaxBytes = 4 << 20;

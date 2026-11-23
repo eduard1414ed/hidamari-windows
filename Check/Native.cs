@@ -89,6 +89,20 @@ static class Native
 
     public static IntPtr RealWindowFromPoint(Point p) => WindowFromPoint(new POINT { X = p.X, Y = p.Y });
 
+    /// The processor a Windows program is built for (from its PE header): x64, arm64, x86.
+    public static string MachineOf(string exe)
+    {
+        try
+        {
+            using var f = File.OpenRead(exe);
+            using var r = new BinaryReader(f);
+            f.Seek(0x3C, SeekOrigin.Begin);
+            f.Seek(r.ReadInt32() + 4, SeekOrigin.Begin);
+            return r.ReadUInt16() switch { 0x8664 => "x64", 0xAA64 => "arm64", 0x14C => "x86", var m => $"0x{m:X4}" };
+        }
+        catch (Exception e) { return $"unreadable ({e.Message})"; }
+    }
+
     public static string ClassOf(IntPtr h) { var sb = new StringBuilder(256); GetClassName(h, sb, 256); return sb.ToString(); }
     public static string TitleOf(IntPtr h) { var sb = new StringBuilder(256); GetWindowText(h, sb, 256); return sb.ToString(); }
     public static string Describe(IntPtr h)

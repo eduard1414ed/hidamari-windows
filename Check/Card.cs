@@ -6,7 +6,7 @@ using Microsoft.Win32;
 // place the card's page reports for that control (card-layout.json, written by the app in check mode only).
 static partial class Check
 {
-    static readonly string SettingsFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hidamari", "settings.json");
+    static string SettingsFile => Path.Combine(DataFolder, "settings.json");
     const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     const string ApprovedKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
     static int commandId;
@@ -213,8 +213,8 @@ static partial class Check
         Pictures.Crop(Pictures.Shot(null), l.Window, "card/first-launch-real.png");
         var after = ClickCard(run, l, "firstNotNow", until: x => !x.Is("first"));
         var said = run.Next("settings: first launch answered: Not now", TimeSpan.FromSeconds(5));
-        Result(g, "Not now: the question folds away and is never asked again", after != null && !after.Is("first") && said != null && RunEntry() == null,
-            $"journal: {said ?? "nothing"}; Run entry: {RunEntry() ?? "none"}");
+        Result(g, "Not now: the question folds away and is never asked again", after != null && !after.Is("first") && said != null && !LoginOn(),
+            $"journal: {said ?? "nothing"}; Launch at login: {LoginSays()}");
         Esc();
         var closed = run.Next("card: closed (Escape)", TimeSpan.FromSeconds(5));
         Result(g, "Escape closes the card", closed != null && WaitSeen(false), closed ?? "not closed");
@@ -552,6 +552,15 @@ static partial class Check
         Pictures.Crop(Pictures.Shot(null), l.Window, "card/settings-real.png");
 
         // Launch at login
+        if (packaged) l = PackageLogin(run, l, g);
+        else l = RunKeyLogin(run, l, g);
+        if (l == null) return;
+        Settings_Rest(run, l, g);
+    }
+
+    /// Launch at login of a plain Hidamari.exe: the Run key and Task Manager's mark (stage 2).
+    static Layout? RunKeyLogin(Run run, Layout l, string g)
+    {
         run.Mark();
         l = ClickCard(run, l, "login", until: x => x.Is("login")) ?? l;
         var entry = RunEntry();
@@ -568,7 +577,12 @@ static partial class Check
             Result(g, "on again: the Task Manager's off mark is cleared", k?.GetValue("Hidamari") == null && RunEntry() != null && l.Is("login"), $"mark {(k?.GetValue("Hidamari") == null ? "gone" : "still there")}");
         l = ClickCard(run, l, "login", until: x => !x.Is("login")) ?? l;
         Result(g, "Launch at login off: the entry is gone", RunEntry() == null && !l.Is("login"), $"Run entry: {RunEntry() ?? "none"}");
+        return l;
+    }
 
+    static void Settings_Rest(Run run, Layout? l0, string g)
+    {
+        var l = l0!;
         // Screens: Main
         run.Mark();
         l = ClickCard(run, l, "screensMain", until: x => x.Is("screensMain")) ?? l;
@@ -720,7 +734,8 @@ static partial class Check
             finally { Quit(part); }
         }
 
-        // Launch at login after the app was moved: the entry follows it
+        // Launch at login after the app was moved: the entry follows it (a plain Hidamari.exe only: a package does not move)
+        if (packaged) return;
         using (var k = Registry.CurrentUser.CreateSubKey(RunKey)) k.SetValue("Hidamari", "\"C:\\Old place\\Hidamari.exe\"");
         WriteSettings(new());
         using (var moved = StartApp("card-moved"))
@@ -807,7 +822,7 @@ static partial class Check
             }
 
             // the icon under the "^": the card at the right end of the taskbar
-            bool hidden = win11 ? Desk.Demote(app) : Desk.SetAutoTray(true);
+            bool hidden = win11 ? Desk.Demote(TrayExe) : Desk.SetAutoTray(true);
             if (!win11) { RestartExplorer(); Desk.MinimizeAll(); }
             Thread.Sleep(3000);
             run.Mark();
@@ -826,7 +841,7 @@ static partial class Check
                 Esc();
             }
             else Result(g, "the icon under \"^\": the card at the right end of the taskbar", false, "the card did not open");
-            if (win11) Desk.Promote(app); else { Desk.SetAutoTray(false); RestartExplorer(); Desk.MinimizeAll(); }
+            if (win11) Desk.Promote(TrayExe); else { Desk.SetAutoTray(false); RestartExplorer(); Desk.MinimizeAll(); }
             Thread.Sleep(3000);
 
             // the taskbar's other edges (Windows 10 / Server 2022 lets it move; Windows 11 keeps it at the bottom)

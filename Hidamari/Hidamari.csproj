@@ -16,7 +16,8 @@
     <RootNamespace>Hidamari</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>0.1.0</Version>
+    <!-- the Windows app's own numbers, from 1.0 (Ed, 23 November 2026); ci/package.ps1 passes the package's -->
+    <Version>1.0.0</Version>
     <Product>Hidamari</Product>
     <Company>Hidamari</Company>
     <!-- lets the project build on any machine (the compile check runs on Linux), the app runs on Windows only -->

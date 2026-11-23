@@ -4,6 +4,9 @@ using System.Text.Json;
 
 // The check of the Windows app on a GitHub Windows machine:
 //   Check app <Hidamari.exe> <HidamariProbe.exe> <out folder> <quick|full>
+//   Check package <Hidamari.msixbundle> <newer .msixbundle> <HidamariProbe.exe> <out folder> <quick|full>
+// The second installs the package as the Store would and checks everything against the installed app, then the
+// Start menu, an update over the running app and the removal (Package.cs).
 // Everything the probe's check did (the wall under the icons, the mouse reaches the icons, the screen shows the page's
 // frame, the desktop comes back), plus the tray icon and Quit in its menu, a second start, ordinary Windows life
 // (a new wallpaper, light and dark, another virtual desktop, Win+D, a taskbar that hides itself, a window over the
@@ -30,15 +33,37 @@ static partial class Check
     static int Main(string[] args)
     {
         Native.SetProcessDpiAwarenessContext(new IntPtr(-4));   // per monitor v2: pixels, not points
-        if (args.Length != 5 || args[0] != "app") { Console.Error.WriteLine("usage: Check app <Hidamari.exe> <HidamariProbe.exe> <out folder> <quick|full>"); return 64; }
-        app = Path.GetFullPath(args[1]);
-        probe = Path.GetFullPath(args[2]);
-        outDir = Path.GetFullPath(args[3]);
-        full = args[4] == "full";
+        if (args.Length == 5 && args[0] == "app")
+        {
+            app = Path.GetFullPath(args[1]);
+            args = args[1..];
+        }
+        else if (args.Length == 6 && args[0] == "package")
+        {
+            packaged = true;
+            bundle = Path.GetFullPath(args[1]);
+            updateBundle = args[2] == "-" ? null : Path.GetFullPath(args[2]);
+            args = args[2..];
+        }
+        else
+        {
+            Console.Error.WriteLine("usage: Check app <Hidamari.exe> <HidamariProbe.exe> <out folder> <quick|full>\n" +
+                                    "       Check package <Hidamari.msixbundle> <newer .msixbundle or -> <HidamariProbe.exe> <out folder> <quick|full>");
+            return 64;
+        }
+        probe = Path.GetFullPath(args[1]);
+        outDir = Path.GetFullPath(args[2]);
+        full = args[3] == "full";
         Pictures.OutDir = outDir;
         Directory.CreateDirectory(outDir);
         try
         {
+            if (packaged)
+            {
+                Directory.CreateDirectory(Path.Combine(outDir, "package"));
+                Part("package: install", Install);
+                if (familyName == null) throw new InvalidOperationException("the package is not installed");
+            }
             Part("setup", Setup);
             Part("main", MainRun);
             Part("card", CardRun);
@@ -51,6 +76,12 @@ static partial class Check
             if (full) Part("memory", Variants);
             Part("session end", EndSession);
             Part("Task Manager", KillRun);
+            if (packaged)
+            {
+                Part("package: Start menu", StartMenuRun);
+                Part("package: update", UpdateRun);
+                Part("package: removal", RemoveRun);
+            }
         }
         catch (Exception e) { Result("check", "the check itself", false, e.ToString()); }
         finally { Part("putting the machine back", PutBack); }
@@ -165,6 +196,7 @@ static partial class Check
         Result(g, "first frame", first != null, first != null ? $"after {run.Since.Elapsed.TotalSeconds:F1} s: {first}" : run.Proc.HasExited ? $"app exited with {run.Proc.ExitCode}" : "no frame within 120 s");
         if (first == null) return;
         FirstLaunch(run);
+        if (packaged) PackageIdentity(run);
         Thread.Sleep(3000);
         var screen = ScreenRect; var work = Work;
 
@@ -249,7 +281,7 @@ static partial class Check
     {
         var r = Desk.TrayIcon("Hidamari");
         if (r != null) return r;
-        if (Desk.Promote(app)) { Say("tray: the app's icon promoted out of the hidden icons"); Thread.Sleep(3000); r = Desk.TrayIcon("Hidamari"); }
+        if (Desk.Promote(TrayExe)) { Say("tray: the app's icon promoted out of the hidden icons"); Thread.Sleep(3000); r = Desk.TrayIcon("Hidamari"); }
         return r;
     }
 

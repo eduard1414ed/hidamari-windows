@@ -4,7 +4,8 @@ using System.Text.RegularExpressions;
 /// One run of the app (or of the probe): started with its settings for the check, its journal read as it grows.
 sealed class Run : IDisposable
 {
-    public static readonly string AppLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hidamari", "hidamari.log");
+    /// The app's journal: in its own folder (%LOCALAPPDATA%\Hidamari, or the package's LocalState when it runs installed).
+    public static string AppLog => Path.Combine(Check.DataFolder, "hidamari.log");
     public static readonly string ProbeLog = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HidamariProbe", "probe.log");
 
     public Process Proc { get; }
@@ -33,6 +34,14 @@ sealed class Run : IDisposable
         var p = Process.Start(psi)!;
         Check.Say($"app started{(policy != null ? $" ({policy})" : "")}, pid {p.Id}");
         return new Run(p, exe, AppLog, folder);
+    }
+
+    /// An app already running (started from the Start menu or by Windows after an update), its journal read the same way.
+    public static Run Attach(Process p, string folder)
+    {
+        Directory.CreateDirectory(folder);
+        Check.Say($"app found running, pid {p.Id}");
+        return new Run(p, "", AppLog, folder);
     }
 
     public static Run Probe(string exe, string folder)

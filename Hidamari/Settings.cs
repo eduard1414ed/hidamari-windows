@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 
 namespace Hidamari;
 
-/// Everything the person chose, kept in %LOCALAPPDATA%\Hidamari\settings.json. The same choices as on the Mac
+/// Everything the person chose, kept in settings.json in the app's own folder (Package.DataFolder). The same choices as on the Mac
 /// (AppSettings.swift, WeatherModel, SettingsView.swift), with the same defaults on a first launch.
 ///
 /// A broken or incomplete file never stops the app: what can be read is kept, the rest takes its default, the journal

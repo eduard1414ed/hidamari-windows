@@ -299,6 +299,31 @@ sealed class Card : IDisposable
         else _ = Open(why);
     }
 
+    /// The card cannot open: the WebView2 runtime is not on this computer (it is part of Windows 11; Windows 10 gets it
+    /// with Edge or Windows Update, but not always). The wall goes on without it (Direct3D). The app says so (App.cs).
+    public event Action<string>? NoRuntime;
+
+    /// The WebView2 runtime is there. Looked at each time the card's engine is to start, so that a runtime installed
+    /// meanwhile is found without a restart. For the checks, HIDAMARI_CHECK_NO_WEBVIEW2=1 pretends it is not.
+    static bool RuntimeThere()
+    {
+        if (Environment.GetEnvironmentVariable("HIDAMARI_CHECK") != null && Environment.GetEnvironmentVariable("HIDAMARI_CHECK_NO_WEBVIEW2") == "1")
+        {
+            Log.Write("card: no WebView2 runtime (pretended for the check)");
+            return false;
+        }
+        try
+        {
+            var v = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            return !string.IsNullOrEmpty(v);
+        }
+        catch (Exception e)
+        {
+            Log.Write($"card: no WebView2 runtime ({e.GetType().Name}: {e.Message.Split('\n')[0].Trim()})");
+            return false;
+        }
+    }
+
     public async Task Open(string why)
     {
         if (IsOpen)
@@ -307,6 +332,11 @@ sealed class Card : IDisposable
             return;
         }
         if (opening) return;
+        if (controller == null && !RuntimeThere())
+        {
+            NoRuntime?.Invoke(why);
+            return;
+        }
         opening = true;
         openClock = Stopwatch.StartNew();
         openWhy = why;

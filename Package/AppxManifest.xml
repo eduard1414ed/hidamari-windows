@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The MSIX package of Hidamari for the Microsoft Store. ci/package.ps1 fills in $VERSION$ and $ARCH$ (x64, arm64) and
+     builds one package per kind of processor, then the bundle of both. The identity is the one Partner Center gave
+     Hidamari (Product management → Product identity); it is not secret, every installed package shows it.
+     The app is a full trust desktop app (runFullTrust): the wall under the desktop icons works only so. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 desktop rescap">
+
+  <Identity
+    Name="EdTsarionov.Hidamari"
+    Publisher="CN=68DBFFBE-B0C1-46F0-81A4-A45ED872261F"
+    Version="$VERSION$"
+    ProcessorArchitecture="$ARCH$" />
+
+  <Properties>
+    <DisplayName>Hidamari</DisplayName>
+    <PublisherDisplayName>Ed Tsarionov</PublisherDisplayName>
+    <Logo>Images\StoreLogo.png</Logo>
+  </Properties>
+
+  <!-- Windows 10 1809 and later (the place from Windows, Windows.Devices.Geolocation, needs it), tested up to Windows 11 24H2 -->
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="Hidamari.exe" EntryPoint="Windows.FullTrustApplication">
+      <!-- the Start menu's entry. Starting it while Hidamari runs opens the card (Program.cs) -->
+      <uap:VisualElements
+        DisplayName="Hidamari"
+        Description="A live wallpaper that follows the real sun in your city"
+        BackgroundColor="transparent"
+        Square150x150Logo="Images\Square150x150Logo.png"
+        Square44x44Logo="Images\Square44x44Logo.png">
+        <uap:DefaultTile
+          Wide310x150Logo="Images\Wide310x150Logo.png"
+          Square71x71Logo="Images\Square71x71Logo.png"
+          Square310x310Logo="Images\Square310x310Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- Launch at login (LoginItem.cs): off until the person says so on the card -->
+        <desktop:Extension Category="windows.startupTask" Executable="Hidamari.exe" EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask TaskId="HidamariStartup" Enabled="false" DisplayName="Hidamari" />
+        </desktop:Extension>
+        <!-- "Hidamari" in Win+R starts it too; the checks on GitHub start the installed app this way, so that it runs as
+             the package and still gets the check's settings -->
+        <uap3:Extension Category="windows.appExecutionAlias" Executable="Hidamari.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:AppExecutionAlias>
+            <desktop:ExecutionAlias Alias="Hidamari.exe" />
+          </uap3:AppExecutionAlias>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- the weather from MET Norway (WeatherService.cs) -->
+    <Capability Name="internetClient" />
+    <!-- a desktop app: the wall under the icons, the tray icon -->
+    <rescap:Capability Name="runFullTrust" />
+    <!-- the place from Windows (Locator.cs); Windows asks the person, Settings → Location lists Hidamari by name -->
+    <DeviceCapability Name="location" />
+  </Capabilities>
+</Package>
