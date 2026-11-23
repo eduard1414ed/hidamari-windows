@@ -36,6 +36,7 @@ static class Desk
                     if (Native.IsWindowVisible(h) && Native.ClassOf(h) == "#32770") found.Add(h);
                     return true;
                 }, IntPtr.Zero);
+                CloseWslPrompt();
                 foreach (var h in found)
                 {
                     Native.GetWindowThreadProcessId(h, out uint pid);
@@ -45,10 +46,46 @@ static class Desk
                     Check.Say($"closing a system dialog: \"{Native.TitleOf(h)}\" ({name})");
                     Native.PostMessage(h, 0x0010, IntPtr.Zero, IntPtr.Zero);   // WM_CLOSE
                 }
-                Thread.Sleep(2000);
+                Thread.Sleep(1000);
             }
         }) { IsBackground = true, Name = "stray dialogs" };
         t.Start();
+    }
+
+    /// GitHub's Windows 11 machine (windows-11-arm) starts wsl.exe at sign-in, and it opens a console over the desktop
+    /// ("Windows Subsystem for Linux must be updated…", in a console or in Windows Terminal), more than once. It covers
+    /// the wall, so it is cancelled as a person would (Esc ends it; here its process is ended and its window closed).
+    /// Only windows whose title names wsl.exe: the machine's own console (hosted-compute-agent) stays.
+    static int wslSeen;
+    static void CloseWslPrompt()
+    {
+        var found = new List<IntPtr>();
+        Native.EnumWindows((h, _) =>
+        {
+            if (Native.IsWindowVisible(h) && Native.TitleOf(h).Contains("wsl.exe", StringComparison.OrdinalIgnoreCase)) found.Add(h);
+            return true;
+        }, IntPtr.Zero);
+        if (found.Count == 0) return;
+        wslSeen++;
+        if (wslSeen == 1)
+        {
+            // who starts it, once: the machine's own agent or something else
+            try
+            {
+                var ps = Process.Start(new ProcessStartInfo("powershell.exe",
+                    "-NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\"Name='wsl.exe'\\\" | % { $p = Get-CimInstance Win32_Process -Filter \\\"ProcessId=$($_.ParentProcessId)\\\"; \\\"$($_.CommandLine) <- $($p.Name) $($p.CommandLine)\\\" }\"")
+                    { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true })!;
+                string who = ps.StandardOutput.ReadToEnd().Trim(); ps.WaitForExit(15000);
+                Check.Say($"the wsl.exe prompt started by: {(who == "" ? "(gone already)" : who)}");
+            }
+            catch (Exception e) { Check.Say($"the wsl.exe prompt: who started it unknown ({e.Message})"); }
+        }
+        foreach (var p in Process.GetProcessesByName("wsl")) { try { p.Kill(); } catch { } }
+        foreach (var h in found)
+        {
+            Check.Say($"closing the wsl.exe prompt ({wslSeen}. time): {Native.ClassOf(h)} \"{Native.TitleOf(h)}\"");
+            Native.PostMessage(h, 0x0010, IntPtr.Zero, IntPtr.Zero);   // WM_CLOSE
+        }
     }
 
     /// Closes File Explorer folder windows (a restarted shell sometimes opens one).
