@@ -795,6 +795,12 @@ sealed class App : ApplicationContext
 
     /// A Windows dialog in place of the card: what is missing, and a button to Microsoft's download of the WebView2
     /// runtime (the evergreen bootstrapper, the same link Microsoft gives to apps). The texts are TEMP (Strings.cs).
+    static Icon AppIcon(Size size)
+    {
+        using var s = typeof(App).Assembly.GetManifestResourceStream("Hidamari.ico")!;
+        return new Icon(s, size);
+    }
+
     void NoWebView2(string why)
     {
         if (askingWebView2) return;
@@ -813,6 +819,15 @@ sealed class App : ApplicationContext
                 DefaultButton = get,
                 AllowCancel = true,
                 SizeToContent = true,
+            };
+            // the dialog's title bar shows Windows' blank program icon unless it is given the app's own
+            using var small = AppIcon(SystemInformation.SmallIconSize);
+            using var big = AppIcon(SystemInformation.IconSize);
+            page.Created += (_, _) =>
+            {
+                if (page.BoundDialog is not { } d) return;
+                SendMessage(d.Handle, 0x0080 /* WM_SETICON */, 0 /* ICON_SMALL */, small.Handle);
+                SendMessage(d.Handle, 0x0080, 1 /* ICON_BIG */, big.Handle);
             };
             var answer = TaskDialog.ShowDialog(page, TaskDialogStartupLocation.CenterScreen);
             if (answer == get)
