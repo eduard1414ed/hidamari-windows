@@ -135,6 +135,7 @@ static partial class Check
             RestartExplorer();
             Thread.Sleep(4000);
         }
+        CloseFirstSignIn();
         Desk.CloseStrayDialogs();
         Desk.MinimizeAll();   // the GitHub machine's own console window covers most of the screen
         Thread.Sleep(3000);
@@ -151,6 +152,27 @@ static partial class Check
         facts["timeZoneBefore"] = zoneBefore;
         before = Pictures.Shot("1-before.png");
         Result("setup", "desktop ready", iconsBefore.Count >= 3, $"{iconsBefore.Count} icons");
+    }
+
+    /// GitHub's Windows 11 machine (windows-11-arm) greets its first sign-in with Windows' privacy screen ("Choose
+    /// privacy settings for your device", a Shell_OOBEProxy window of Explorer's) over the whole screen. Hidamari rightly
+    /// pauses under it, as under any window that covers the screen, so the check closes it as a person would get past
+    /// it once: the screen switched off by Microsoft's own policy, and Explorer started again.
+    static void CloseFirstSignIn()
+    {
+        bool Shown() { var h = Native.FindWindow("Shell_OOBEProxy", null); return h != IntPtr.Zero && Native.IsWindowVisible(h); }
+        if (!Shown()) return;
+        Say("Windows' first sign-in privacy screen covers the desktop; switching it off and starting Explorer again");
+        try
+        {
+            Microsoft.Win32.Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\OOBE", "DisablePrivacyExperience", 1, Microsoft.Win32.RegistryValueKind.DWord);
+            Microsoft.Win32.Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement", "ScoobeSystemSettingEnabled", 0, Microsoft.Win32.RegistryValueKind.DWord);
+        }
+        catch (Exception e) { Say($"could not write the policy: {e.Message}"); }
+        RestartExplorer();
+        Thread.Sleep(3000);
+        if (Shown()) { Native.PostMessage(Native.FindWindow("Shell_OOBEProxy", null), 0x0010 /* WM_CLOSE */, IntPtr.Zero, IntPtr.Zero); Thread.Sleep(3000); }
+        Result("setup", "Windows' first sign-in privacy screen out of the way", !Shown(), Shown() ? "still there" : "closed");
     }
 
     static void RestartExplorer()

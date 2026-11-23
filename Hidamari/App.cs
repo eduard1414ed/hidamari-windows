@@ -79,7 +79,6 @@ sealed class App : ApplicationContext
         }
         renderer = MakeRenderer(settings.Renderer, "start");
         around = new Surroundings(settings, Now, why => WantDraw(why), Changed, () => { if (card.IsOpen) card.Push(); }, checkFolder != null);
-        _ = LoginStart();
         Package.RestartAfterUpdate();
         messages = new Messages(this);
         tray = new Tray(messages.Handle, () => Quit("Quit in the tray menu"), OnSelect);
@@ -96,6 +95,7 @@ sealed class App : ApplicationContext
         covers = new Covers(() => { WantDraw("a wall can be seen again", staleOnly: true); UpdateMotion("windows moved"); });
         measure.Extra = () => $"drawing {renderer.Describe}" + (animator != null ? $"; animation {(settings.Animates ? "on" : "off")}, {animator.Fps} frames a second ({animator.FpsWhy}): {animator.Summary()}" : "");
         motionLook.Tick += (_, _) => UpdateMotion("a look every 2 s");
+        _ = LoginStart();   // after the card: what Windows says is shown on it if it is open
         Log.Write($"app: drawing {renderer.Describe}; web engine between frames: {policy}{(checkFolder != null ? $", check mode ({checkPng} frames saved)" : "")}" +
                   $"; Remote Desktop session: {(GetSystemMetrics(SM_REMOTESESSION) != 0 ? "yes" : "no")}");
         var screens = Screens.All();
@@ -480,7 +480,9 @@ sealed class App : ApplicationContext
     /// Looks again at everything that starts or stops the motion (Animator.update on the Mac).
     void UpdateMotion(string trigger)
     {
-        if (animator == null || stopping) return;
+        // power news come as soon as the messages window is there, before the windows' watcher is: the motion is
+        // looked at once all is made
+        if (animator == null || stopping || covers is null) return;
         bool wanted = settings.Animates && WallLighting.Moves(settings.Scene);
         // while the motion could run, other windows' moves are heard, and a look every 2 s besides
         covers.Listen("motion", wanted);
