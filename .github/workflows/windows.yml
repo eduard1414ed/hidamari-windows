@@ -159,6 +159,10 @@ jobs:
           Copy-Item (Get-ChildItem out/update/*.msixbundle).FullName out/signed/update.msixbundle
           ci/sign-test.ps1 out/signed/store.msixbundle out/signed/update.msixbundle
 
+      - name: Keep the wsl.exe prompt off the desktop
+        shell: pwsh
+        run: ci/quiet-wsl.ps1
+
       - name: Install the package and check it
         shell: pwsh
         env:
