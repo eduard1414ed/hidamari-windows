@@ -155,24 +155,53 @@ static partial class Check
     }
 
     /// GitHub's Windows 11 machine (windows-11-arm) greets its first sign-in with Windows' privacy screen ("Choose
-    /// privacy settings for your device", a Shell_OOBEProxy window of Explorer's) over the whole screen. Hidamari rightly
-    /// pauses under it, as under any window that covers the screen, so the check closes it as a person would get past
-    /// it once: the screen switched off by Microsoft's own policy, and Explorer started again.
+    /// privacy settings for your device") over the whole screen: a Shell_OOBEProxy window of Explorer's and the screen
+    /// itself, a Windows.UI.Core.CoreWindow of its own process. Hidamari rightly pauses under it, as under any window that
+    /// covers the screen, so the check puts it away as a person would get past it once: switched off by Microsoft's own
+    /// policy, Explorer started again, and the screen's process ended (its name written down).
     static void CloseFirstSignIn()
     {
-        bool Shown() { var h = Native.FindWindow("Shell_OOBEProxy", null); return h != IntPtr.Zero && Native.IsWindowVisible(h); }
-        if (!Shown()) return;
-        Say("Windows' first sign-in privacy screen covers the desktop; switching it off and starting Explorer again");
+        var screen = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        List<(IntPtr h, string what, Process? p)> Covering()
+        {
+            var found = new List<(IntPtr, string, Process?)>();
+            Native.EnumWindows((h, _) =>
+            {
+                if (!Native.Seen(h)) return true;
+                var cls = Native.ClassOf(h);
+                if (cls != "Shell_OOBEProxy" && cls != "Windows.UI.Core.CoreWindow") return true;
+                Native.GetWindowRect(h, out var r);
+                var rect = r.ToRectangle();
+                if (cls == "Windows.UI.Core.CoreWindow" && rect.Width * rect.Height < screen.Width * screen.Height * 0.8) return true;
+                Native.GetWindowThreadProcessId(h, out uint pid);
+                Process? p = null; try { p = Process.GetProcessById((int)pid); } catch { }
+                found.Add((h, $"{cls} \"{Native.TitleOf(h)}\" ({p?.ProcessName ?? "?"}) {rect}", p));
+                return true;
+            }, IntPtr.Zero);
+            return found;
+        }
+        var first = Covering();
+        if (first.Count == 0) return;
+        Say($"Windows' first sign-in screen covers the desktop: {string.Join("; ", first.Select(x => x.what))}");
         try
         {
             Microsoft.Win32.Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\OOBE", "DisablePrivacyExperience", 1, Microsoft.Win32.RegistryValueKind.DWord);
             Microsoft.Win32.Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement", "ScoobeSystemSettingEnabled", 0, Microsoft.Win32.RegistryValueKind.DWord);
         }
         catch (Exception e) { Say($"could not write the policy: {e.Message}"); }
+        foreach (var (_, what, p) in first)
+            if (p != null && p.ProcessName != "explorer")
+                try { p.Kill(); p.WaitForExit(5000); Say($"ended {p.ProcessName} ({what})"); } catch (Exception e) { Say($"could not end {what}: {e.Message}"); }
         RestartExplorer();
         Thread.Sleep(3000);
-        if (Shown()) { Native.PostMessage(Native.FindWindow("Shell_OOBEProxy", null), 0x0010 /* WM_CLOSE */, IntPtr.Zero, IntPtr.Zero); Thread.Sleep(3000); }
-        Result("setup", "Windows' first sign-in privacy screen out of the way", !Shown(), Shown() ? "still there" : "closed");
+        var left = Covering();
+        foreach (var (_, what, p) in left)
+            if (p != null && p.ProcessName != "explorer")
+                try { p.Kill(); p.WaitForExit(5000); Say($"ended {p.ProcessName} ({what}), come again after Explorer"); } catch { }
+        if (left.Count > 0) { Thread.Sleep(3000); left = Covering(); }
+        Pictures.Shot("0-first-sign-in-closed.png");
+        Result("setup", "Windows' first sign-in privacy screen out of the way", left.Count == 0,
+            left.Count == 0 ? $"closed (was: {string.Join("; ", first.Select(x => x.what))})" : $"still there: {string.Join("; ", left.Select(x => x.what))}");
     }
 
     static void RestartExplorer()

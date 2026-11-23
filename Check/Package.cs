@@ -212,6 +212,9 @@ static partial class Check
         }
     }
 
+    /// Windows Server (GitHub's windows-2025 and windows-2022), not Windows 10 or 11.
+    static bool Server => (Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "InstallationType", null) as string) == "Server";
+
     static Process? WaitForApp(DateTime since, TimeSpan timeout, int? not = null)
     {
         for (var sw = Stopwatch.StartNew(); sw.Elapsed < timeout; Thread.Sleep(250))
@@ -252,8 +255,18 @@ static partial class Check
             var closed = run.Lines().LastOrDefault(x => x.Contains("stopping:"));
             Result(g, "the running app was closed for it", run.Proc.HasExited, $"{(run.Proc.HasExited ? "closed" : "still running")}; journal: {closed ?? "no stopping line (ended without a word)"}");
             var proc = WaitForApp(since, TimeSpan.FromSeconds(90), not: run.Proc.Id);
-            Result(g, "after the update Windows starts Hidamari again by itself", proc != null,
-                proc != null ? $"pid {proc.Id}, {(proc.StartTime.ToUniversalTime() - since).TotalSeconds:F0} s after the update began" : "no Hidamari within 90 s");
+            if (proc == null && Server)
+            {
+                // Windows Server does not start apps again after an update (Windows 11 does: windows-11-arm, a few
+                // seconds), and there is no Store on it; the rest is checked with the app started from Start
+                Result(g, "after the update Windows starts Hidamari again by itself", "N/A",
+                    "Windows Server does not start apps again after an update (Windows 11 does: see windows-11-arm); started from Start for the rest");
+                Process.Start(new ProcessStartInfo("explorer.exe", AppsFolder) { UseShellExecute = true });
+                proc = WaitForApp(since, TimeSpan.FromSeconds(60), not: run.Proc.Id);
+            }
+            else
+                Result(g, "after the update Windows starts Hidamari again by itself", proc != null,
+                    proc != null ? $"pid {proc.Id}, {(proc.StartTime.ToUniversalTime() - since).TotalSeconds:F0} s after the update began" : "no Hidamari within 90 s");
             if (proc == null) { Pictures.Shot("package/update-2-after.png"); return; }
             after = Run.Attach(proc, Path.Combine(outDir, "update-after"));
             var frame = after.Next("frame 1 (", TimeSpan.FromSeconds(120));
