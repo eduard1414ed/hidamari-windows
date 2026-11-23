@@ -19,6 +19,7 @@ static class Native
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr h, uint cmd);
+    [DllImport("user32.dll")] public static extern IntPtr GetParent(IntPtr h);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] public static extern IntPtr GetWindowLongPtr(IntPtr h, int index);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
     [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT p);

@@ -60,6 +60,14 @@ static class Desk
         if (found.Count > 0) Thread.Sleep(1000);
     }
 
+    /// The window is inside the icons' view (SHELLDLL_DefView): the desktop's own, not the wall.
+    public static bool InIconsView(IntPtr h)
+    {
+        for (int i = 0; h != IntPtr.Zero && i < 10; i++, h = Native.GetParent(h))
+            if (Native.ClassOf(h) == "SHELLDLL_DefView") return true;
+        return false;
+    }
+
     public static void ToggleIcons() => Native.SendMessage(DefView(), 0x0111, new IntPtr(0x7402), IntPtr.Zero);   // WM_COMMAND "show desktop icons"
 
     public static List<(string name, Rectangle rect)> Icons()
@@ -467,6 +475,17 @@ static class Desk
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             shown.Wait(10000);
+        }
+
+        /// What Windows says of the window now (for a check that was not answered as it expected).
+        public string State()
+        {
+            var h = IntPtr.Zero;
+            try { form?.Invoke(() => h = form.Handle); } catch { }
+            if (h == IntPtr.Zero) return "no window";
+            Native.GetWindowRect(h, out var r);
+            int cloaked = Native.DwmGetWindowAttribute(h, 14, out int c, 4) == 0 ? c : -1;
+            return $"visible {Native.IsWindowVisible(h)}, cloaked {cloaked}, {r.ToRectangle()}, on top under the middle: {Native.Describe(Native.RealWindowFromPoint(new Point(r.Left + (r.Right - r.Left) / 2, r.Top + (r.Bottom - r.Top) / 2)))}";
         }
 
         public void Dispose()

@@ -136,6 +136,7 @@ static partial class Check
             Thread.Sleep(4000);
         }
         CloseFirstSignIn();
+        FixedPhoto();
         Desk.CloseStrayDialogs();
         Desk.MinimizeAll();   // the GitHub machine's own console window covers most of the screen
         Thread.Sleep(3000);
@@ -171,10 +172,12 @@ static partial class Check
             Process? p = null; try { p = Process.GetProcessById((int)pid); } catch { }
             return (cls, $"{cls} \"{Native.TitleOf(h)}\" ({p?.ProcessName ?? "?"})", p);
         }
-        bool Covers(string cls) => cls is "Windows.UI.Core.CoreWindow" or "Shell_OOBEProxy";
+        // the Start menu is a CoreWindow too (StartMenuExperienceHost); Windows opens it once the first sign-in
+        // screen is gone, and it is closed below, as a person would
+        bool Covers(string cls, Process? p) => cls == "Shell_OOBEProxy" || (cls == "Windows.UI.Core.CoreWindow" && p?.ProcessName == "WWAHost");
         var proxy = Native.FindWindow("Shell_OOBEProxy", null);
         var first = OnTop();
-        if (!Covers(first.cls) && !(proxy != IntPtr.Zero && Native.IsWindowVisible(proxy))) return;
+        if (!Covers(first.cls, first.p) && !(proxy != IntPtr.Zero && Native.IsWindowVisible(proxy))) return;
         Say($"Windows' first sign-in screen covers the desktop: {first.what}; Shell_OOBEProxy {(proxy != IntPtr.Zero ? "there" : "none")}");
         try
         {
@@ -186,7 +189,7 @@ static partial class Check
         for (int i = 0; i < 6; i++)
         {
             var top = OnTop();
-            if (!Covers(top.cls)) break;
+            if (!Covers(top.cls, top.p)) break;
             if (i == 0 && top.p != null && top.p.ProcessName != "explorer")
             {
                 try { top.p.Kill(); top.p.WaitForExit(5000); steps.Add($"ended {top.what}"); } catch (Exception e) { steps.Add($"could not end {top.what}: {e.Message}"); }
@@ -199,11 +202,36 @@ static partial class Check
             else steps.Add($"no blue button on {top.what}");
             Thread.Sleep(4000);
         }
+        // what Windows opens after it, in the first minute of a first sign-in: the Start menu, a folder window
+        Thread.Sleep(10000);
+        if (OnTop().p?.ProcessName == "StartMenuExperienceHost") { Native.Keys(0x1B); steps.Add("the Start menu closed (Esc)"); Thread.Sleep(1500); }
+        Desk.CloseFolderWindows();
         var last = OnTop();
         Pictures.Shot("0-first-sign-in-closed.png");
         Say($"first sign-in screen: {string.Join("; ", steps)}; now on top: {last.what}");
-        Result("setup", "Windows' first sign-in privacy screen out of the way", !Covers(last.cls),
+        Result("setup", "Windows' first sign-in privacy screen out of the way", !Covers(last.cls, last.p),
             $"{string.Join("; ", steps)}; on top now: {last.what}");
+    }
+
+    /// Windows 11 (not Server) shows Windows Spotlight on the desktop: a new photo from Microsoft now and then, which
+    /// would change the "before" picture under the checks' feet. The person's own fixed photo instead (Windows' own
+    /// img0.jpg), Spotlight off by Microsoft's policy for it, Explorer started again.
+    static void FixedPhoto()
+    {
+        const string spotlight = @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\DesktopSpotlight\Settings";
+        bool on = Desk.Reg(spotlight, "EnabledState") is "1" || Desk.Wallpaper().Contains("Spotlight", StringComparison.OrdinalIgnoreCase);
+        var photo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), @"Web\Wallpaper\Windows\img0.jpg");
+        if (!on || !File.Exists(photo)) return;
+        try
+        {
+            Microsoft.Win32.Registry.SetValue(@"HKEY_CURRENT_USER\Software\Policies\Microsoft\Windows\CloudContent", "DisableSpotlightCollectionOnDesktop", 1, Microsoft.Win32.RegistryValueKind.DWord);
+            Microsoft.Win32.Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Wallpapers", "BackgroundType", 0, Microsoft.Win32.RegistryValueKind.DWord);
+        }
+        catch (Exception e) { Say($"Spotlight: could not write the policy: {e.Message}"); }
+        bool set = Desk.SetWallpaper(photo);
+        RestartExplorer();
+        Thread.Sleep(3000);
+        Say($"Windows Spotlight was on the desktop: a fixed photo instead ({photo}, set {set}); now {Desk.Wallpaper()}");
     }
 
     static void RestartExplorer()
@@ -269,7 +297,10 @@ static partial class Check
         var hits = iconsWith.Select(i => (i.name, cls: Native.ClassOf(Native.RealWindowFromPoint(Desk.Center(i.rect))))).ToList();
         var empty = Desk.EmptyPoint(iconsWith, work);
         var emptyHit = Native.ClassOf(Native.RealWindowFromPoint(empty));
-        Result(d, "mouse goes to the icons, not to the wall", hits.All(h => h.cls == "SysListView32") && emptyHit == "SysListView32",
+        // Windows 11 25H2 (windows-11-arm) has a window of its own over the empty desktop, inside the icons' view
+        // (Microsoft.UI.Content.DesktopChildSiteBridge): still the desktop's, not the wall
+        bool emptyDesktop = emptyHit == "SysListView32" || Desk.InIconsView(Native.RealWindowFromPoint(empty));
+        Result(d, "mouse goes to the icons, not to the wall", hits.All(h => h.cls == "SysListView32") && emptyDesktop,
             $"window under each icon: {string.Join(", ", hits.Select(h => h.cls).Distinct())}; under empty desktop: {emptyHit}");
 
         // the wall alone: icons hidden for a moment
@@ -465,16 +496,28 @@ static partial class Check
         const string v = "visibility";
         run.Mark();
         string? pause, early;
+        string missed = "";
         using (var cover = new Desk.Cover(ScreenRect))
         {
             Thread.Sleep(1500);
             Run.Signal("Draw");
             pause = run.Next("pause on DISPLAY1", TimeSpan.FromSeconds(10));
             early = run.Next(l => l.Contains("frame ") && l.Contains("(check)"), TimeSpan.FromSeconds(3));
+            if (pause == null)
+            {
+                // once (windows-2025, 23 November) the window was over the screen and the app drew all the same: what
+                // Windows said of the window is written down, and the app is asked once more
+                missed = $"the first look after 1.5 s missed it ({cover.State()}); ";
+                Thread.Sleep(2000);
+                run.Mark();
+                Run.Signal("Draw");
+                pause = run.Next("pause on DISPLAY1", TimeSpan.FromSeconds(10));
+                early = run.Next(l => l.Contains("frame ") && l.Contains("(check)"), TimeSpan.FromSeconds(3));
+            }
             Pictures.Shot("12-covered.png");
             run.Mark();
         }
-        Result(v, "a window over the whole screen: no frame is drawn", pause != null && early == null, $"journal: {pause ?? "no pause"}{(early != null ? $"; but: {early}" : "")}");
+        Result(v, "a window over the whole screen: no frame is drawn", pause != null && early == null, $"{missed}journal: {pause ?? "no pause"}{(early != null ? $"; but: {early}" : "")}");
         var fresh = run.Next("(a wall can be seen again)", TimeSpan.FromSeconds(10));
         Thread.Sleep(2000);
         s = WallStill(run, "13-uncovered.png");
