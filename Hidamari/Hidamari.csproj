@@ -15,6 +15,9 @@
     <AssemblyName>Hidamari</AssemblyName>
     <RootNamespace>Hidamari</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- the app's own icon (Task Manager, Windows' dialogs, the file itself): the package's icon at its exact sizes,
+         16–256 px, put together from Package/Images/Square44x44Logo.targetsize-*.png -->
+    <ApplicationIcon>Resources\Hidamari.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <!-- the Windows app's own numbers, from 1.0 (Ed, 23 November 2026); ci/package.ps1 passes the package's -->
     <Version>1.0.0</Version>
