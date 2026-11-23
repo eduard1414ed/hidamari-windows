@@ -266,11 +266,43 @@ static class Desk
         {
             using var k = Registry.CurrentUser.OpenSubKey($@"Control Panel\NotifyIconSettings\{sub}", writable: true);
             var path = k?.GetValue("ExecutablePath") as string;
-            if (path == null || !string.Equals(Path.GetFullPath(path), Path.GetFullPath(exe), StringComparison.OrdinalIgnoreCase)) continue;
+            if (path == null || !SameExe(path, exe)) continue;
             k!.SetValue("IsPromoted", 1, RegistryValueKind.DWord);
             any = true;
         }
         return any;
+    }
+
+    /// Windows writes the path with a known folder's id in place of the folder: {6D809377-…}\WindowsApps\… is
+    /// C:\Program Files\WindowsApps\… (an app installed from its package lives there).
+    static readonly Dictionary<string, Environment.SpecialFolder> KnownFolders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["{6D809377-6AF0-444B-8957-A3773F02200E}"] = Environment.SpecialFolder.ProgramFiles,
+        ["{7C5A40EF-A0FB-4BFC-874A-C0F2E0B9FA8E}"] = Environment.SpecialFolder.ProgramFilesX86,
+        ["{F38BF404-1D43-42F2-9305-67DE0B28FC23}"] = Environment.SpecialFolder.Windows,
+        ["{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}"] = Environment.SpecialFolder.System,
+        ["{F1B32785-6FBA-4FCF-9D55-7B8E7F157091}"] = Environment.SpecialFolder.LocalApplicationData,
+    };
+
+    public static bool SameExe(string path, string exe)
+    {
+        foreach (var (id, folder) in KnownFolders)
+            if (path.StartsWith(id, StringComparison.OrdinalIgnoreCase))
+                path = Environment.GetFolderPath(folder) + path[id.Length..];
+        try { return string.Equals(Path.GetFullPath(path), Path.GetFullPath(exe), StringComparison.OrdinalIgnoreCase); }
+        catch { return false; }
+    }
+
+    /// The paths Windows keeps for tray icons (for the journal of a check that could not find the app's).
+    public static string TrayPaths()
+    {
+        using var root = Registry.CurrentUser.OpenSubKey(@"Control Panel\NotifyIconSettings");
+        if (root == null) return "none";
+        return string.Join(" | ", root.GetSubKeyNames().Select(sub =>
+        {
+            using var k = root.OpenSubKey(sub);
+            return $"{k?.GetValue("ExecutablePath")} (promoted {k?.GetValue("IsPromoted") ?? "-"})";
+        }));
     }
 
     /// Windows 11: the app's icon back under the "^" arrow (as a new app's icon is).
@@ -283,7 +315,7 @@ static class Desk
         {
             using var k = Registry.CurrentUser.OpenSubKey($@"Control Panel\NotifyIconSettings\{sub}", writable: true);
             var path = k?.GetValue("ExecutablePath") as string;
-            if (path == null || !string.Equals(Path.GetFullPath(path), Path.GetFullPath(exe), StringComparison.OrdinalIgnoreCase)) continue;
+            if (path == null || !SameExe(path, exe)) continue;
             k!.SetValue("IsPromoted", 0, RegistryValueKind.DWord);
             any = true;
         }

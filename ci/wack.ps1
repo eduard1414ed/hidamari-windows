@@ -27,10 +27,19 @@ $overall = $x.REPORT.OVERALL_RESULT
 $lines = @("# Windows App Certification Kit", "", "Overall: **$overall**", "")
 foreach ($req in $x.REPORT.REQUIREMENTS.REQUIREMENT) {
   foreach ($t in $req.TEST) {
-    $lines += "- $($t.RESULT.'#cdata-section' ?? $t.RESULT) — $($t.NAME)"
+    $lines += "- $($t.RESULT.'#cdata-section' ?? $t.RESULT) — $($t.NAME)$(if ($t.OPTIONAL -eq 'TRUE') { ' (optional)' })"
     foreach ($m in $t.MESSAGES.MESSAGE) { if ($m.TEXT) { $lines += "  - $($m.TEXT)" } }
   }
 }
 $lines | Set-Content (Join-Path $Out 'wack-summary.md') -Encoding utf8
 $lines | Out-String | Add-Content $env:GITHUB_STEP_SUMMARY
-if ($overall -ne 'PASS') { Write-Host "WACK overall: $overall"; exit 1 }
+# only a failed test that is not optional stops a submission (Partner Center lets optional ones and warnings through)
+$blocking = @()
+foreach ($req in $x.REPORT.REQUIREMENTS.REQUIREMENT) {
+  foreach ($t in $req.TEST) {
+    $r = "$($t.RESULT.'#cdata-section' ?? $t.RESULT)".Trim()
+    if ($r -eq 'FAIL' -and $t.OPTIONAL -ne 'TRUE') { $blocking += $t.NAME }
+  }
+}
+Write-Host "WACK overall: $overall; failed tests that would stop the submission: $(if ($blocking) { $blocking -join ', ' } else { 'none' })"
+if ($blocking) { exit 1 }

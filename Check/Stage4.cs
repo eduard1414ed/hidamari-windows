@@ -335,8 +335,12 @@ static partial class Check
                 Command(run, new { @do = "power", pretend = "mains" });
                 Thread.Sleep(1500);
                 var rBack = Rate(run, 10);
-                numbers["motionRate"] = new { mains = r30, battery = r15, saver = rSaver, back = rBack };
                 bool Near(double x, int f) => Math.Abs(x - f) <= f * 0.03;
+                // GitHub's machines stall now and then for a second (windows-2022 once gave 28.36 for 30 here, all
+                // three other parts exact): a part that is off is measured once more, and both numbers are written down
+                RateResult? backFirst = null;
+                if (!Near(rBack.wanted, 30)) { backFirst = rBack; Thread.Sleep(1500); rBack = Rate(run, 10); }
+                numbers["motionRate"] = new { mains = r30, battery = r15, saver = rSaver, back = rBack, backFirst };
                 // the pacing must be exact; drawn may fall a little short when the machine's processor, which draws
                 // here instead of a graphics card, is busy for a moment (those frames are skipped, not piled up)
                 bool Drawn(RateResult x) => x.drawn >= x.wanted * 0.9;
@@ -344,7 +348,8 @@ static partial class Check
                     Near(r30.wanted, 30) && Near(r15.wanted, 15) && Near(rSaver.wanted, 15) && Near(rBack.wanted, 30)
                     && Drawn(r30) && Drawn(r15) && Drawn(rSaver) && Drawn(rBack),
                     $"frames due a second: {r30.wanted:F2} / {r15.wanted:F2} / {rSaver.wanted:F2} / {rBack.wanted:F2}; drawn {r30.drawn:F2} / {r15.drawn:F2} / {rSaver.drawn:F2} / {rBack.drawn:F2}, " +
-                    $"skipped (the drawing too slow) {r30.skipped} / {r15.skipped} / {rSaver.skipped} / {rBack.skipped}; {Screen0(Motion(run)).GetProperty("pacing")}");
+                    $"skipped (the drawing too slow) {r30.skipped} / {r15.skipped} / {rSaver.skipped} / {rBack.skipped}; " +
+                    (backFirst is { } bf ? $"back on mains measured twice: first {bf.wanted:F2} due, {bf.drawn:F2} drawn; " : "") + $"{Screen0(Motion(run)).GetProperty("pacing")}");
 
                 // not one frame while the motion must not run; then on from where it was
                 var pauses = new List<string>();

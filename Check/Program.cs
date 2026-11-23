@@ -283,6 +283,7 @@ static partial class Check
         var r = Desk.TrayIcon("Hidamari");
         if (r != null) return r;
         if (Desk.Promote(TrayExe)) { Say("tray: the app's icon promoted out of the hidden icons"); Thread.Sleep(3000); r = Desk.TrayIcon("Hidamari"); }
+        else Say($"tray: the app's icon not found in Windows' list of tray icons ({TrayExe}): {Desk.TrayPaths()}");
         return r;
     }
 
