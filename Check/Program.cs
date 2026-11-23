@@ -155,53 +155,55 @@ static partial class Check
     }
 
     /// GitHub's Windows 11 machine (windows-11-arm) greets its first sign-in with Windows' privacy screen ("Choose
-    /// privacy settings for your device") over the whole screen: a Shell_OOBEProxy window of Explorer's and the screen
-    /// itself, a Windows.UI.Core.CoreWindow of its own process. Hidamari rightly pauses under it, as under any window that
-    /// covers the screen, so the check puts it away as a person would get past it once: switched off by Microsoft's own
-    /// policy, Explorer started again, and the screen's process ended (its name written down).
+    /// privacy settings for your device") over the whole screen, in the band above all windows (as Windows' location
+    /// question): a Windows.UI.Core.CoreWindow, hosted by Explorer's Shell_OOBEProxy. Hidamari rightly pauses under it, as
+    /// under any window that covers the screen, so the check gets past it as a person would once: switched off by
+    /// Microsoft's own policy, its process ended, and if it is still there, its blue button (Next, then Accept) clicked.
     static void CloseFirstSignIn()
     {
-        var screen = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
-        List<(IntPtr h, string what, Process? p)> Covering()
+        var b = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        var center = new Point(b.X + b.Width / 2, b.Y + b.Height / 2);
+        (string cls, string what, Process? p) OnTop()
         {
-            var found = new List<(IntPtr, string, Process?)>();
-            Native.EnumWindows((h, _) =>
-            {
-                if (!Native.Seen(h)) return true;
-                var cls = Native.ClassOf(h);
-                if (cls != "Shell_OOBEProxy" && cls != "Windows.UI.Core.CoreWindow") return true;
-                Native.GetWindowRect(h, out var r);
-                var rect = r.ToRectangle();
-                if (cls == "Windows.UI.Core.CoreWindow" && rect.Width * rect.Height < screen.Width * screen.Height * 0.8) return true;
-                Native.GetWindowThreadProcessId(h, out uint pid);
-                Process? p = null; try { p = Process.GetProcessById((int)pid); } catch { }
-                found.Add((h, $"{cls} \"{Native.TitleOf(h)}\" ({p?.ProcessName ?? "?"}) {rect}", p));
-                return true;
-            }, IntPtr.Zero);
-            return found;
+            var h = Native.RealWindowFromPoint(center);
+            var cls = Native.ClassOf(h);
+            Native.GetWindowThreadProcessId(h, out uint pid);
+            Process? p = null; try { p = Process.GetProcessById((int)pid); } catch { }
+            return (cls, $"{cls} \"{Native.TitleOf(h)}\" ({p?.ProcessName ?? "?"})", p);
         }
-        var first = Covering();
-        if (first.Count == 0) return;
-        Say($"Windows' first sign-in screen covers the desktop: {string.Join("; ", first.Select(x => x.what))}");
+        bool Covers(string cls) => cls is "Windows.UI.Core.CoreWindow" or "Shell_OOBEProxy";
+        var proxy = Native.FindWindow("Shell_OOBEProxy", null);
+        var first = OnTop();
+        if (!Covers(first.cls) && !(proxy != IntPtr.Zero && Native.IsWindowVisible(proxy))) return;
+        Say($"Windows' first sign-in screen covers the desktop: {first.what}; Shell_OOBEProxy {(proxy != IntPtr.Zero ? "there" : "none")}");
         try
         {
             Microsoft.Win32.Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\OOBE", "DisablePrivacyExperience", 1, Microsoft.Win32.RegistryValueKind.DWord);
             Microsoft.Win32.Registry.SetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement", "ScoobeSystemSettingEnabled", 0, Microsoft.Win32.RegistryValueKind.DWord);
         }
         catch (Exception e) { Say($"could not write the policy: {e.Message}"); }
-        foreach (var (_, what, p) in first)
-            if (p != null && p.ProcessName != "explorer")
-                try { p.Kill(); p.WaitForExit(5000); Say($"ended {p.ProcessName} ({what})"); } catch (Exception e) { Say($"could not end {what}: {e.Message}"); }
-        RestartExplorer();
-        Thread.Sleep(3000);
-        var left = Covering();
-        foreach (var (_, what, p) in left)
-            if (p != null && p.ProcessName != "explorer")
-                try { p.Kill(); p.WaitForExit(5000); Say($"ended {p.ProcessName} ({what}), come again after Explorer"); } catch { }
-        if (left.Count > 0) { Thread.Sleep(3000); left = Covering(); }
+        var steps = new List<string>();
+        for (int i = 0; i < 6; i++)
+        {
+            var top = OnTop();
+            if (!Covers(top.cls)) break;
+            if (i == 0 && top.p != null && top.p.ProcessName != "explorer")
+            {
+                try { top.p.Kill(); top.p.WaitForExit(5000); steps.Add($"ended {top.what}"); } catch (Exception e) { steps.Add($"could not end {top.what}: {e.Message}"); }
+            }
+            else if (Desk.BlueButton() is { } blue)
+            {
+                Native.Click(new Point(blue.X + blue.Width / 2, blue.Y + blue.Height / 2));
+                steps.Add($"clicked its blue button {blue} ({top.what})");
+            }
+            else steps.Add($"no blue button on {top.what}");
+            Thread.Sleep(4000);
+        }
+        var last = OnTop();
         Pictures.Shot("0-first-sign-in-closed.png");
-        Result("setup", "Windows' first sign-in privacy screen out of the way", left.Count == 0,
-            left.Count == 0 ? $"closed (was: {string.Join("; ", first.Select(x => x.what))})" : $"still there: {string.Join("; ", left.Select(x => x.what))}");
+        Say($"first sign-in screen: {string.Join("; ", steps)}; now on top: {last.what}");
+        Result("setup", "Windows' first sign-in privacy screen out of the way", !Covers(last.cls),
+            $"{string.Join("; ", steps)}; on top now: {last.what}");
     }
 
     static void RestartExplorer()

@@ -224,7 +224,7 @@ static class Desk
 
     /// The wide blue button of a Windows 11 question on the screen (screen coordinates), or null: rows with a run of at
     /// least 100 pixels of Windows' accent blue (icons are never that wide).
-    static Rectangle? BlueButton()
+    public static Rectangle? BlueButton()
     {
         using var shot = Pictures.Shot(null);
         var v = SystemInformation.VirtualScreen;
