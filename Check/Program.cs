@@ -73,6 +73,7 @@ static partial class Check
             Part("place", PlaceRun);
             Part("weather", WeatherRun);
             Part("stage 4", Stage4Run);
+            Part("no WebView2", NoWebView2Run);
             if (full) Part("memory", Variants);
             Part("session end", EndSession);
             Part("Task Manager", KillRun);

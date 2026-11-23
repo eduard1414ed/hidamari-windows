@@ -326,4 +326,41 @@ static partial class Check
         Result(g, "the alias, the Start entry and Launch at login are gone", !File.Exists(Alias) && StartEntry() == null && TaskState() == null,
             $"alias {(File.Exists(Alias) ? "still there" : "gone")}; Start {StartEntry() ?? "gone"}; startup task {TaskSays(TaskState())}");
     }
+
+    // ================= no WebView2 =================
+
+    /// The card needs the WebView2 runtime, the wall does not. Without it (pretended: the machine has it) the wall is
+    /// drawn, and a click on the icon shows Windows' dialog instead of the card (texts TEMP).
+    static void NoWebView2Run()
+    {
+        const string g = "no WebView2";
+        WriteSettings(new());
+        using var run = StartApp("no-webview2", new() { ["HIDAMARI_RENDERER"] = "direct3d", ["HIDAMARI_CHECK_NO_WEBVIEW2"] = "1" });
+        try
+        {
+            var frame = run.Lines().FirstOrDefault(x => x.Contains("frame 1 ("));
+            Result(g, "the wall is drawn without WebView2 (Direct3D)", frame != null, frame ?? "no frame");
+            run.Mark();
+            var icon = FindTray();
+            if (icon != null) Native.Click(new Point(icon.Value.X + icon.Value.Width / 2, icon.Value.Y + icon.Value.Height / 2));
+            else Command(run, new { @do = "open" });
+            var told = run.Next("the person is told", TimeSpan.FromSeconds(10));
+            IntPtr dlg = IntPtr.Zero;
+            for (var sw = Stopwatch.StartNew(); sw.Elapsed < TimeSpan.FromSeconds(10) && dlg == IntPtr.Zero; Thread.Sleep(250))
+                dlg = Native.FindWindow("#32770", "Hidamari");
+            Thread.Sleep(1000);
+            var shot = Pictures.Shot("package/no-webview2.png");
+            if (dlg != IntPtr.Zero && Native.GetWindowRect(dlg, out var r))
+                Pictures.Crop(shot, Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom), "package/no-webview2-dialog.png");
+            Result(g, "a click on the icon: Windows' dialog says what is missing", told != null && dlg != IntPtr.Zero,
+                $"journal: {told ?? "nothing"}; dialog {(dlg != IntPtr.Zero ? "shown" : "not found")}");
+            if (dlg != IntPtr.Zero)
+            {
+                Native.PostMessage(dlg, 0x0010, IntPtr.Zero, IntPtr.Zero);   // WM_CLOSE, as the cross does
+                var notNow = run.Next("card: WebView2 not now", TimeSpan.FromSeconds(10));
+                Result(g, "closing the dialog leaves the wall as it was", notNow != null && !run.Proc.HasExited, notNow ?? "no answer in the journal");
+            }
+        }
+        finally { Quit(run); }
+    }
 }
