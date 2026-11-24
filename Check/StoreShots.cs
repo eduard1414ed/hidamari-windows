@@ -15,6 +15,9 @@ static partial class Check
 {
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
 
+    /// The machine's clock was moved for a picture: it is set back to the real time at the end.
+    static bool clockMoved;
+
     sealed record StoreShot(string Name, int Scene, int H, int M, int Wall, int Plant, string Weather);
 
     static readonly StoreShot[] storeShots =
@@ -35,13 +38,12 @@ static partial class Check
         Directory.CreateDirectory(Path.Combine(outDir, "store"));
         var realAt = DateTime.UtcNow;
         var since = Stopwatch.StartNew();
-        bool clockMoved = false;
         try
         {
             Part("package: install", Install);
             if (familyName == null) throw new InvalidOperationException("the package is not installed");
             Part("store: desktop", StoreDesk);
-            Part("store: pictures", () => StoreShotsTake(ref clockMoved));
+            Part("store: pictures", StoreShotsTake);
         }
         catch (Exception e) { Result("check", "the shots themselves", false, e.ToString()); }
         finally
@@ -107,7 +109,7 @@ static partial class Check
         Say($"time zone now {Tz("/g")}");
     }
 
-    static void StoreShotsTake(ref bool clockMoved)
+    static void StoreShotsTake()
     {
         const string g = "store: pictures";
         // the machine keeps its clock by itself (Windows Time, and Hyper-V's own time service): both stopped while
@@ -126,7 +128,8 @@ static partial class Check
             if (!Desk.IconsShown()) { Desk.ToggleIcons(); Thread.Sleep(2000); }
             Say($"tray icon: {Desk.TrayIcon("Hidamari")?.ToString() ?? "not found"}");
 
-            foreach (var s in storeShots)
+            // the wall and the taskbar's clock at the moment of shot `s`; the journal's line of its frame
+            (string? frame, string clock) Show(StoreShot s)
             {
                 Command(run, new { @do = "choose", type = "set", change = new { scene = s.Scene, wall = s.Wall, plant = s.Plant, weather = s.Weather } });
                 clockMoved = true;
@@ -137,23 +140,28 @@ static partial class Check
                 Desk.CloseStrayDialogs();
                 AwayMouse();
                 Thread.Sleep(2500);
-                Pictures.Shot($"store/{s.Name}.png");
-                Result(g, s.Name, frame != null, $"machine clock {o} ({c}); {frame ?? "no frame of this moment"}");
-
-                if (s.Scene == 0)
-                {
-                    // the same wall with the card open, as a click on the icon opens it
-                    var at = DateTime.UtcNow;
-                    Command(run, new { @do = "open" });
-                    var l = LayoutAfter(run, at, x => x.Open, 60);
-                    AwayMouse();
-                    Thread.Sleep(2000);
-                    Pictures.Shot($"store/{s.Name}-card.png");
-                    Result(g, s.Name + "-card", l != null, l != null ? $"card at {l.Card}, scale {l.Scale}" : "the card did not open");
-                    Command(run, new { @do = "close" });
-                    Thread.Sleep(1500);
-                }
+                return (frame, $"{o} ({c})");
             }
+
+            foreach (var s in storeShots)
+            {
+                var (frame, clock) = Show(s);
+                Pictures.Shot($"store/{s.Name}.png");
+                Result(g, s.Name, frame != null, $"machine clock {clock}; {frame ?? "no frame of this moment"}");
+            }
+
+            // the first wall once more, with the card open as a click on the icon opens it. Last: once the card closes,
+            // Windows hands the keyboard to the taskbar and the Start button shows its "Start" tooltip in what follows.
+            var first = storeShots[0];
+            var (f1, _) = Show(first);
+            var at = DateTime.UtcNow;
+            Command(run, new { @do = "open" });
+            var l = LayoutAfter(run, at, x => x.Open, 60);
+            AwayMouse();
+            Thread.Sleep(2000);
+            Pictures.Shot($"store/{first.Name}-card.png");
+            Result(g, first.Name + "-card", f1 != null && l != null, l != null ? $"card at {l.Card}, scale {l.Scale}" : "the card did not open");
+            Command(run, new { @do = "close" });
         }
         finally
         {
