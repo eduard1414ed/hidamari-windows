@@ -343,7 +343,7 @@ static partial class Check
     // ================= no WebView2 =================
 
     /// The card needs the WebView2 runtime, the wall does not. Without it (pretended: the machine has it) the wall is
-    /// drawn, and a click on the icon shows Windows' dialog instead of the card (texts TEMP).
+    /// drawn, and a click on the icon shows Windows' dialog instead of the card (texts approved by Ed, 24 November 2026).
     static void NoWebView2Run()
     {
         const string g = "no WebView2";
