@@ -33,6 +33,7 @@ static partial class Check
     static int Main(string[] args)
     {
         Native.SetProcessDpiAwarenessContext(new IntPtr(-4));   // per monitor v2: pixels, not points
+        if (args.Length == 3 && args[0] == "store-shots") return StoreShotsMain(args[1], args[2]);   // StoreShots.cs
         if (args.Length == 5 && args[0] == "app")
         {
             app = Path.GetFullPath(args[1]);

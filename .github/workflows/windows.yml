@@ -4,13 +4,15 @@
 # are kept as the run's artifacts. A push runs the quick check; "[full]" in the commit message (or a manual run with mode
 # full) adds the memory comparison of the four ways of keeping the web engine and ten minutes of the app's own
 # measurements. "[compile]" in the commit message only builds the app on Linux (no Windows machines, no minutes spent).
+# A manual run with mode "shots" takes only the Store's screenshots on the Windows 11 machine (Check/StoreShots.cs):
+# no checks, no certification.
 name: Windows
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: quick or full
+        description: quick, full or shots
         default: full
   push:
     branches: [main, 'stage-*']
@@ -89,6 +91,7 @@ jobs:
   # Microsoft's Windows App Certification Kit, as Partner Center runs it, on a copy signed for this run
   certification:
     needs: package
+    if: ${{ inputs.mode != 'shots' }}
     runs-on: windows-2025
     timeout-minutes: 60
     steps:
@@ -112,6 +115,7 @@ jobs:
 
   check:
     needs: package
+    if: ${{ inputs.mode != 'shots' }}
     strategy:
       fail-fast: false
       matrix:
@@ -182,5 +186,55 @@ jobs:
         if: always()
         with:
           name: check-${{ matrix.os }}
+          path: results
+          retention-days: 5
+
+  # the Store's screenshots: the real desktop of the Windows 11 machine with the installed package running
+  shots:
+    needs: package
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'shots' }}
+    runs-on: windows-11-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/download-artifact@v5
+        with:
+          name: Hidamari-msix
+          path: out/store
+      - name: Build the check
+        shell: pwsh
+        run: dotnet build Check -c Release -o out/check
+      - name: WebView2 runtime
+        shell: pwsh
+        run: ci/webview2.ps1
+      - name: Sign a copy for this machine only
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out/signed | Out-Null
+          Copy-Item (Get-ChildItem out/store/*.msixbundle).FullName out/signed/store.msixbundle
+          ci/sign-test.ps1 out/signed/store.msixbundle
+      - name: Keep the wsl.exe prompt off the desktop
+        shell: pwsh
+        run: ci/quiet-wsl.ps1
+      - name: The Store's screenshots
+        shell: pwsh
+        run: out/check/Check.exe store-shots out/signed/store.msixbundle results
+      - name: Collect the journal
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force results/journals | Out-Null
+          Get-ChildItem "$env:LOCALAPPDATA\Packages\EdTsarionov.Hidamari_*\LocalState\*.log" -ErrorAction SilentlyContinue | Copy-Item -Destination results/journals
+          if (Test-Path results/report.md) { Get-Content results/report.md | Out-String | Add-Content $env:GITHUB_STEP_SUMMARY }
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: store-shots
           path: results
           retention-days: 5
