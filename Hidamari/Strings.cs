@@ -44,11 +44,11 @@ static class Strings
 
     // Windows only, when the WebView2 runtime is missing (the card needs it, the wall does not): a Windows dialog with
     // these texts and two buttons, WebView2Get (opens Microsoft's download) and NotNow. Approved by Ed on 24 November 2026.
-    /// The dialog's heading
+    /// Windows only: the dialog's heading
     public const string WebView2Heading = "Hidamari needs Microsoft Edge WebView2 to open its card";
-    /// The dialog's text under the heading
+    /// Windows only: the dialog's text under the heading
     public const string WebView2Text = "The wall works without it. WebView2 is free from Microsoft and installs in a minute. Then click the Hidamari icon again.";
-    /// The dialog's button that opens Microsoft's download of WebView2
+    /// Windows only: the dialog's button that opens Microsoft's download of WebView2
     public const string WebView2Get = "Get WebView2";
 
     // ---------- only heard with a screen reader ----------
