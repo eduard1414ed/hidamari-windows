@@ -69,6 +69,17 @@ static partial class Check
         Directory.CreateDirectory(Path.Combine(desktopDir, "Photos"));
         Directory.CreateDirectory(Path.Combine(desktopDir, "Projects"));
         File.WriteAllText(Path.Combine(desktopDir, "Notes.txt"), "\r\n");
+        // GitHub's machine puts its own tools on the desktop; a person's would not have Epic Games and R side by side.
+        // Chrome, Firefox and Edge stay.
+        var removed = new List<string>();
+        foreach (var dir in new[] { desktopDir, Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory) })
+            foreach (var f in Directory.Exists(dir) ? Directory.GetFiles(dir, "*.lnk") : Array.Empty<string>())
+            {
+                var n = Path.GetFileNameWithoutExtension(f);
+                if (n.StartsWith("Epic", StringComparison.OrdinalIgnoreCase) || n == "R" || n.StartsWith("R ", StringComparison.Ordinal))
+                    try { File.Delete(f); removed.Add(n); } catch (Exception e) { Say($"could not remove {f}: {e.Message}"); }
+            }
+        Say($"desktop shortcuts removed: {(removed.Count == 0 ? "none" : string.Join(", ", removed))}");
         CloseFirstSignIn();
         FixedPhoto();
         Desk.CloseStrayDialogs();
@@ -124,6 +135,7 @@ static partial class Check
                 Command(run, new { @do = "clock", ms = (double)new DateTimeOffset(2026, 6, 21, s.H, s.M, 0, TimeSpan.FromHours(2)).ToUnixTimeMilliseconds() });
                 var frame = run.Next(x => x.Contains(" frame ") && JuneAt(x, s.H, s.M), TimeSpan.FromSeconds(180));
                 Desk.CloseStrayDialogs();
+                AwayMouse();
                 Thread.Sleep(2500);
                 Pictures.Shot($"store/{s.Name}.png");
                 Result(g, s.Name, frame != null, $"machine clock {o} ({c}); {frame ?? "no frame of this moment"}");
@@ -134,6 +146,7 @@ static partial class Check
                     var at = DateTime.UtcNow;
                     Command(run, new { @do = "open" });
                     var l = LayoutAfter(run, at, x => x.Open, 60);
+                    AwayMouse();
                     Thread.Sleep(2000);
                     Pictures.Shot($"store/{s.Name}-card.png");
                     Result(g, s.Name + "-card", l != null, l != null ? $"card at {l.Card}, scale {l.Scale}" : "the card did not open");
@@ -148,6 +161,10 @@ static partial class Check
             Quit(run);
         }
     }
+
+    /// The mouse over an empty part of the wall: over the Start button it left a "Start" tooltip in the pictures
+    /// (the pointer itself is not in a screenshot).
+    static void AwayMouse() { Native.SetCursorPos(ScreenRect.Width * 3 / 5, ScreenRect.Height * 2 / 5); Thread.Sleep(600); }
 
     static bool JuneAt(string line, int h, int m)
     {
