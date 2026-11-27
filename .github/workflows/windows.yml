@@ -168,7 +168,8 @@ jobs:
         run: ci/quiet-wsl.ps1
 
       # Windows' own toasts (windows-2022 showed "Hidamari is now configured to run when you log in" when Launch at
-      # login was switched on, and it took the keyboard, so the card closed as it should under the check's next click)
+      # login was switched on, and it took the keyboard, so the card closed as it should under the check's next click;
+      # the check opens the card again if it still comes)
       - name: Keep Windows' notifications off the desktop
         shell: pwsh
         run: |
@@ -176,6 +177,10 @@ jobs:
           Set-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications -Name ToastEnabled -Value 0 -Type DWord
           if (-not (Test-Path HKCU:\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications)) { New-Item -Path HKCU:\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications -Force | Out-Null }
           Set-ItemProperty -Path HKCU:\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications -Name NoToastApplicationNotification -Value 1 -Type DWord
+          # the startup task's own toast (the two keys above are read only when Windows' notification service starts)
+          $k = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.StartupApp'
+          if (-not (Test-Path $k)) { New-Item -Path $k -Force | Out-Null }
+          Set-ItemProperty -Path $k -Name Enabled -Value 0 -Type DWord
 
       - name: Install the package and check it
         shell: pwsh

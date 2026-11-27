@@ -81,6 +81,16 @@ static partial class Check
         Result(g, "Launch at login on: the package's startup task is on", TaskState() == 2 && l.Is("login"),
             $"startup task: {TaskSays(TaskState())}; journal: {said ?? "nothing"}");
         Result(g, "Launch at login on: no Run entry (the package uses its startup task)", RunEntry() == null, $"Run entry: {RunEntry() ?? "none"}");
+        // Windows 10 (windows-2022) answers with its own toast, "Hidamari is now configured to run when you log in",
+        // which takes the keyboard, so the card closes as it should; the person opens it again, and so does the check
+        Thread.Sleep(3500);
+        if (run.Lines().LastOrDefault(x => x.Contains(" card: opened") || x.Contains(" card: closed"))?.Contains(" card: closed") == true)
+        {
+            Say("the card was closed by Windows' own notification about the startup task; opened again");
+            var (again, _) = OpenByIcon(run);
+            if (again != null && !again.Settings) again = ClickCard(run, again, "gear", until: x => x.Settings);
+            if (again != null && again.Settings) l = again;
+        }
 
         // the person turns it off in Task Manager → Startup apps: Windows writes State 1
         using (var k = Registry.CurrentUser.CreateSubKey(TaskKey)) k.SetValue("State", 1, RegistryValueKind.DWord);

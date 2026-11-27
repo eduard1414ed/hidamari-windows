@@ -41,7 +41,9 @@ static partial class Check
     static SupportLayout? SupportLayoutSeen(Run run, double seconds = 30)
     {
         for (var sw = Stopwatch.StartNew(); sw.Elapsed < TimeSpan.FromSeconds(seconds); Thread.Sleep(200))
-            if (ReadSupportLayout(run) is { Open: true } l && l.Rects.TryGetProperty("done", out _)) { Thread.Sleep(600); return ReadSupportLayout(run) ?? l; }
+            // the page tells its places as it is drawn, just before the window is shown ("open" is still false then):
+            // that it is shown, the journal says
+            if (ReadSupportLayout(run) is { } l && l.Rects.TryGetProperty("done", out _)) { Thread.Sleep(600); return ReadSupportLayout(run) ?? l; }
         return null;
     }
 
@@ -58,7 +60,8 @@ static partial class Check
         {
             try
             {
-                var said = up.Next("support window: an earlier version → ", TimeSpan.FromSeconds(20));
+                // the rule speaks before the first frame, which StartApp has already waited for: read the whole journal
+                var said = up.Lines().FirstOrDefault(x => x.Contains("support window: an earlier version → "));
                 var shown = up.Next("support window shown (after an update)", TimeSpan.FromSeconds(60));
                 var l = SupportLayoutSeen(up);
                 var saved = Run.Read(SettingsFile);
@@ -106,8 +109,8 @@ static partial class Check
         {
             try
             {
-                var said = first.Next("support window: first installation of ", TimeSpan.FromSeconds(20));
                 Thread.Sleep(4000);
+                var said = first.Lines().FirstOrDefault(x => x.Contains("support window: first installation of "));
                 var shown = first.Lines().FirstOrDefault(x => x.Contains("support window shown"));
                 Result(g, "the very first installation: not shown", said != null && shown == null, $"{said ?? "no rule line"}{(shown != null ? "; but: " + shown : "")}");
                 // the first launch's card answered, so the rest of the checks find the settings as they expect
