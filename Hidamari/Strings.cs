@@ -10,7 +10,8 @@ static class Strings
 
     // ---------- seen on the card ----------
     public const string FollowSun = "Live sun";
-    public static readonly string[] Scenes = { "Dapples", "Window", "Blinds", "Water" };
+    /// in the film's order, the scene's number as on the Mac: the prototype's four, then the four of update 1.4 (Windows 1.1)
+    public static readonly string[] Scenes = { "Dapples", "Window", "Blinds", "Water", "Prism", "Moon Gate", "Tree", "Glass Blocks" };
     public const string LiveWeather = "Live weather";
     /// the third switch, only at the scenes that move (dapples, water): the live motion (the Mac's update 1.1)
     public const string Animation = "Animation";
@@ -31,6 +32,11 @@ static class Strings
     public const string LightFrom = "Light from";
     public const string LightLeft = "Left";
     public const string LightRight = "Right";
+    // settings 1.4 (the Mac's design/panel/settings-v2): the caption at the top is Settings, now also seen
+    /// at the bottom left, {0} is the app's version: "Ver 1.1.0". The Mac's settingsVersion(_:)
+    public const string SettingsVersion = "Ver {0}";
+    /// at the bottom right, opens Links.Author
+    public const string MadeBy = "Made by Ed Tsarionov";
     /// the city search: its first line goes back to finding the place by itself
     public const string CurrentLocation = "Current Location";
     public const string SearchCity = "Search for a city";
@@ -51,6 +57,16 @@ static class Strings
     /// Windows only: the dialog's button that opens Microsoft's download of WebView2
     public const string WebView2Get = "Get WebView2";
 
+    // the support window after an update (the Mac's update 1.4, design/support/)
+    /// above the heading, {0} is the app's version. The Mac's supportVersion(_:)
+    public const string SupportVersion = "Hidamari {0}";
+    public const string SupportHeading = "Help Hidamari keep growing";
+    public const string SupportText = "Hidamari is free, with no ads and no tracking. If you enjoy it, you can help fund its development.";
+    /// the wide button, opens Links.Donate
+    public const string SupportButton = "Support and Buy me a coffee";
+    public const string SupportThanks = "Thank you for being here.";
+    public const string SupportDone = "Done";
+
     // ---------- only heard with a screen reader ----------
     public const string TimeOfDay = "Time of day";
     public static readonly Dictionary<int, string> Plants = new() { [0] = "Bush", [2] = "Branch", [5] = "Palm" };
@@ -69,6 +85,9 @@ static class Strings
     public const string ShadeHandle = "Shade colour";
     public const string OwnShade = "Own shade";
     public const string DefaultShade = "Default shade";
+    /// the stack at the end of the scene film that opens the second row, and the arrow under that row that folds it
+    public const string AllScenes = "All scenes";
+    public const string FewerScenes = "Fewer scenes";
     public const string Texture = "Texture";
     public const string LightStrength = "Light";
 
@@ -85,4 +104,13 @@ static class Strings
         }
         return all;
     }
+}
+
+/// The two links of the Mac's update 1.4 (shared/Strings.swift, Links), opened in the browser.
+static class Links
+{
+    /// the support window's button: Ed's one Ko-fi page for all his projects
+    public const string Donate = "https://ko-fi.com/tsarionov";
+    /// "Made by Ed Tsarionov" in the settings: Ed's own site
+    public const string Author = "https://tsarionov.com/";
 }

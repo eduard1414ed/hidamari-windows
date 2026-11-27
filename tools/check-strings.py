@@ -25,6 +25,13 @@ def swift_texts():
     out = {}
     for m in re.finditer(r'static let (\w+) = ("(?:[^"\\]|\\.)*"|\[[^\]]*\])', SWIFT.read_text(encoding="utf-8")):
         out[m.group(1)] = parse(m.group(2))
+    # texts with a value in them: static func name(_ v: String) -> String { "Ver \(v)" } is "Ver {0}" on Windows
+    for m in re.finditer(r'static func (\w+)\(_ (\w+): String\) -> String \{ "((?:[^"\\]|\\.)*)" \}', SWIFT.read_text(encoding="utf-8")):
+        out[m.group(1)] = m.group(3).replace("\\(" + m.group(2) + ")", "{0}")
+    # the links: static let name = URL(string: "...")! must be the same in Links in Strings.cs
+    links = re.search(r'enum Links \{(.*?)\n\}', SWIFT.read_text(encoding="utf-8"), re.S)
+    for m in re.finditer(r'static let (\w+) = URL\(string: "([^"]*)"\)!', links.group(1) if links else ""):
+        out["link." + m.group(1)] = m.group(2)
     return out
 
 
@@ -54,8 +61,18 @@ def cs_texts():
             parsed = {int(k): t for k, t in re.findall(r'\[(\d+)\]\s*=\s*"([^"]*)"', value)}
         else:
             parsed = re.findall(r'"([^"]*)"', value)
-        out[name[0].lower() + name[1:]] = (parsed, "TEMP" in comment, "Windows only" in comment)
+        prefix = "link." if in_links(lines, i) else ""
+        out[prefix + name[0].lower() + name[1:]] = (parsed, "TEMP" in comment, "Windows only" in comment)
     return out
+
+
+def in_links(lines, i):
+    """Is line i inside `static class Links`?"""
+    for line in reversed(lines[:i]):
+        m = re.match(r'\s*(?:public )?static class (\w+)', line)
+        if m:
+            return m.group(1) == "Links"
+    return False
 
 
 def main():
