@@ -657,7 +657,7 @@ static partial class Check
         Thread.Sleep(1200);
         l = ReadLayout(run) ?? l;
         Pictures.Crop(Pictures.Shot(null), l.Window, "card/light-right.png");
-        Result(g, "the small pictures of the window, the blinds and the plants turn over", l.Str("mirroredScenes") == "1,2" && l.Is("mirroredPlants"),
+        Result(g, "the small pictures of the window, the blinds, Moon Gate, the Tree, the glass blocks and the plants turn over", l.Str("mirroredScenes") == "1,2,6,7,8" && l.Is("mirroredPlants"),
             $"turned over: scenes {l.Str("mirroredScenes")}, plants {l.Is("mirroredPlants")} (picture card/light-right.png)");
         // back to the scene it was, the settings open again
         if (int.TryParse(sceneBefore, out var before))
@@ -698,7 +698,7 @@ static partial class Check
             var (l2, _) = OpenByIcon(again);
             Result(g, "after a restart the card shows the same", l2 != null && l2.Str("scene") == "3" && l2.Str("wall") == "4" && !l2.Is("follow") && l2.Str("weather") == "cloudy",
                 l2 == null ? "card not open" : $"scene {l2.Str("scene")}, wall {l2.Str("wall")}, Live sun {(l2.Is("follow") ? "on" : "off")}, weather {l2.Str("weather")}");
-            Result(g, "Light from: Right survives a restart", l2 != null && l2.Is("lightRight") && l2.Str("mirroredScenes") == "1,2",
+            Result(g, "Light from: Right survives a restart", l2 != null && l2.Is("lightRight") && l2.Str("mirroredScenes") == "1,2,6,7,8",
                 l2 == null ? "card not open" : $"right {l2.Is("lightRight")}, pictures turned over: {l2.Str("mirroredScenes")}");
             Esc();
         }

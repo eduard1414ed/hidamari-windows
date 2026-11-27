@@ -14,7 +14,8 @@ sealed class Settings
     public const int OwnWall = -1;
     public static string FilePath => Path.Combine(Log.Folder, "settings.json");
 
-    /// 0 dapples, 1 window, 2 blinds, 3 water
+    /// The scene's number (SceneNumbers): 0 dapples, 1 window, 2 blinds, 3 water, and update 1.4's 4 prism, 6 moon gate,
+    /// 7 tree, 8 glass blocks (5 kept free, as on the Mac). The files of 1.0 hold 0–3 and read as before.
     public int Scene = 0;
     /// 0–5 an approved wall, -1 the own wall
     public int Wall = 0;
@@ -52,7 +53,21 @@ sealed class Settings
     public Place Place => PlaceMode == "chosen" && ChosenPlace != null ? ChosenPlace : AutoPlace ?? Place.Berlin;
     /// the first launch's question was answered (or the person chose in the settings before answering)
     public bool FirstLaunchAnswered;
+    /// The version the support window was last shown for, or quietly remembered at the very first installation
+    /// (SupportPrompt). Not in the files of 1.0: missing means an update from a version before the window.
+    public string? SupportShownVersion;
 
+    /// The scenes' numbers in the card's film order, the Mac's Scene: Strings.Scenes is in this order, so its index is
+    /// not the number once 4–8 exist (Scene.index on the Mac).
+    public static readonly int[] SceneNumbers = { 0, 1, 2, 3, 4, 6, 7, 8 };
+    /// The scene's place in the film (and in Strings.Scenes), -1 for a number that is no scene.
+    public static int SceneIndex(int scene) => Array.IndexOf(SceneNumbers, scene);
+    /// The scene's name for the journal.
+    public static string SceneName(int scene)
+    {
+        int i = SceneIndex(scene);
+        return i >= 0 && i < Strings.Scenes.Length ? Strings.Scenes[i] : $"scene {scene}";
+    }
     public static readonly string[] Weathers = { "clear", "cloudy", "rain", "frost" };
     public static readonly int[] PlantChoices = { 0, 2, 5 };
     public static readonly string[] Renderers = { "direct3d", "web" };
@@ -99,7 +114,7 @@ sealed class Settings
             problems.Add($"{key} not valid ({n.ToJsonString()})");
             return null;
         }
-        s.Scene = Get("scene", n => (int?)n.GetValue<int>(), v => v is >= 0 and <= 3) ?? s.Scene;
+        s.Scene = Get("scene", n => (int?)n.GetValue<int>(), v => SceneIndex(v) >= 0) ?? s.Scene;
         s.Wall = Get("wall", n => (int?)n.GetValue<int>(), v => v is >= -1 and <= 5) ?? s.Wall;
         s.Plant = Get("plant", n => (int?)n.GetValue<int>(), v => PlantChoices.Contains(v)) ?? s.Plant;
         s.FollowsSun = Get("followsSun", n => (bool?)n.GetValue<bool>()) ?? s.FollowsSun;
@@ -115,6 +130,11 @@ sealed class Settings
         if (obj.ContainsKey("chosenPlace")) s.ChosenPlace = ReadPlace(obj["chosenPlace"], "chosenPlace", problems);
         if (obj.ContainsKey("autoPlace")) s.AutoPlace = ReadPlace(obj["autoPlace"], "autoPlace", problems);
         if (s.PlaceMode == "chosen" && s.ChosenPlace == null) s.PlaceMode = "automatic";
+        if (obj["supportShownVersion"] is JsonNode sv)
+        {
+            try { s.SupportShownVersion = sv.GetValue<string>(); }
+            catch { problems.Add($"supportShownVersion not valid ({sv.ToJsonString()})"); }
+        }
         if (o.TryGetPropertyValue("custom", out var c) && c is JsonObject co)
         {
             try
@@ -167,6 +187,7 @@ sealed class Settings
                 ["liveWeather"] = LiveWeather, ["animation"] = Animates, ["renderer"] = Renderer, ["placeMode"] = PlaceMode,
                 ["chosenPlace"] = ChosenPlace?.ForPage(), ["autoPlace"] = AutoPlace?.ForPage(),
                 ["firstLaunchAnswered"] = FirstLaunchAnswered,
+                ["supportShownVersion"] = SupportShownVersion,
             }, new JsonSerializerOptions { WriteIndented = true });
             var temp = FilePath + ".new";
             File.WriteAllText(temp, json);

@@ -142,7 +142,7 @@ sealed class Card : IDisposable
 
     /// The sun and colour maths of wall.html, taken out of the page as it is (the prototype's numbers, never copied by
     /// hand): the card's sky colours, its wall dots and the own-wall picker use exactly what the wall uses.
-    static string ColourScript()
+    internal static string ColourScript()
     {
         using var s = typeof(Card).Assembly.GetManifestResourceStream("wall.html")!;
         var page = new StreamReader(s).ReadToEnd().Replace("\r\n", "\n");
@@ -275,6 +275,9 @@ sealed class Card : IDisposable
             case "picker":
                 Log.Write($"card: own-wall picker {(m.GetProperty("open").GetBoolean() ? "opened" : "closed")}");
                 break;
+            case "more":
+                Log.Write($"card: second row of scenes {(m.GetProperty("open").GetBoolean() ? "opened" : "folded")}");
+                break;
             case "layout":
                 Layout?.Invoke(m);
                 break;
@@ -305,7 +308,7 @@ sealed class Card : IDisposable
 
     /// The WebView2 runtime is there. Looked at each time the card's engine is to start, so that a runtime installed
     /// meanwhile is found without a restart. For the checks, HIDAMARI_CHECK_NO_WEBVIEW2=1 pretends it is not.
-    static bool RuntimeThere()
+    internal static bool RuntimeThere()
     {
         if (Environment.GetEnvironmentVariable("HIDAMARI_CHECK") != null && Environment.GetEnvironmentVariable("HIDAMARI_CHECK_NO_WEBVIEW2") == "1")
         {

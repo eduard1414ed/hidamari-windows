@@ -14,8 +14,14 @@
     <Compile Include="..\Hidamari\Core\*.cs" Link="Core\%(Filename)%(Extension)" />
     <None Include="..\Hidamari\Resources\cities.gz" Link="cities.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Include="met\*.json" CopyToOutputDirectory="PreserveNewest" />
-    <!-- stage 4: the shader's numbers for 743 states, worked out by the Mac's Swift (tools/windows-stage4.swift) -->
+    <!-- stage 4: the shader's numbers for 1015 states, worked out by the Mac's Swift (tools/windows-stage4.swift at first, now Tests/make-reference.sh) -->
     <None Include="lighting.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <!-- the Mac's update 1.4 (Tests/make-reference.sh): the shader's numbers above now also hold the new scenes and the
+         window in motion; the motion's clocks frame by frame; the window's plant in the wind (Core/WindowLeaves.cs) -->
+    <None Include="motion.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="leaves.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <!-- the photo plants cut into pieces, embedded as in the app, so WindowLeaves.Rig.FromResource reads them the same way -->
+    <EmbeddedResource Include="..\shared\textures\rig*.json" Link="textures\%(Filename)%(Extension)" LogicalName="textures/%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

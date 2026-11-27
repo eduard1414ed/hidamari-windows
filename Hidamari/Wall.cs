@@ -38,7 +38,11 @@ static class Wall
                 V(c, "shade") is Dictionary<string, object?> sh ? (D(V(sh, "x")), D(V(sh, "y"))) : null)
             : CustomWall.Standard;
         var motion = Motion.Still;
-        if (V(page, "motion") is Dictionary<string, object?> m) motion = new Motion(D(V(m, "t")), D(V(m, "wind")), D(V(m, "windLeaves")));
+        // the window and the blinds (Mac update 1.4) also send their plant's wind and clock and the rain's slow clock
+        if (V(page, "motion") is Dictionary<string, object?> m)
+            motion = V(m, "moving") is true
+                ? new Motion(D(V(m, "t")), D(V(m, "wind")), D(V(m, "windLeaves")), true, D(V(m, "windMs")), D(V(m, "leafT")), D(V(m, "wt"), -1))
+                : new Motion(D(V(m, "t")), D(V(m, "wind")), D(V(m, "windLeaves")));
         return new WallFrameInput
         {
             Ms = ms, Minutes = WallFrameInput.MinutesOf(ms, D(V(page, "utcOffset"))),
@@ -70,8 +74,9 @@ static class Wall
             ["cloud"] = w.Cloud,
             // wall.html draws rain and frost only in the window scene; elsewhere the clouds are the weather
             ["weather"] = (int)w.Kind,
-            // Light from: Right mirrors only the scenes with a window (WallpaperState.mirrored on the Mac)
-            ["mirror"] = s.WindowOnRight && s.Scene is 1 or 2,
+            // Light from: Right mirrors only the scenes with a window (Scene.mirrors on the Mac): the window and the
+            // blinds, and since the Mac's 1.4 Moon Gate, the Tree and the glass blocks (not the prism; Ed, 25 November 2026)
+            ["mirror"] = s.WindowOnRight && Scenes.Mirrors(s.Scene),
         };
     }
 }

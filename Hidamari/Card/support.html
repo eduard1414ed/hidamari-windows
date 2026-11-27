@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hidamari</title>
+<!-- The support window of the Windows app (the Mac's update 1.4, design/support/, SupportWindow.swift): once after every
+     update a card in the middle of the main screen with the app's icon and version, a few words, a button to Ed's
+     donation page and Done. The same browser, look and sky colours as the card; texts from the app (Strings.cs). -->
+<link rel="stylesheet" href="card.css">
+<link rel="stylesheet" href="support.css">
+</head>
+<body class="support-page">
+<div class="slot" id="slot">
+<section class="card support shadow" id="card" role="dialog" aria-labelledby="heading">
+  <div class="sky" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="support-body">
+    <div class="support-head">
+      <img class="app-icon" src="img/icon.png" alt="" draggable="false">
+      <div class="support-titles">
+        <span class="support-version" id="version"></span>
+        <h1 class="support-heading" id="heading"></h1>
+      </div>
+    </div>
+    <p class="support-text" id="text"></p>
+    <button type="button" class="support-button" id="support">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" class="line-icon" stroke-width="1.5"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16 M3 21.5h14 M8 3.5c-.6.8-.6 1.7 0 2.5M12 3.5c-.6.8-.6 1.7 0 2.5"/></svg>
+      <span id="supportLabel"></span>
+    </button>
+    <div class="support-bottom">
+      <span class="support-thanks" id="thanks"></span>
+      <button type="button" class="support-done" id="done"></button>
+    </div>
+  </div>
+</section>
+</div>
+<script src="sky.js"></script>
+<script src="support.js"></script>
+</body>
+</html>

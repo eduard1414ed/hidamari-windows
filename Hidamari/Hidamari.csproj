@@ -19,8 +19,8 @@
          16–256 px, put together from Package/Images/Square44x44Logo.targetsize-*.png -->
     <ApplicationIcon>Resources\Hidamari.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <!-- the Windows app's own numbers, from 1.0 (Ed, 23 November 2026); ci/package.ps1 passes the package's -->
-    <Version>1.0.0</Version>
+    <!-- the Windows app's own numbers, from 1.0 (Ed, 23 November 2026); 1.1 = the Mac's update 1.4; ci/package.ps1 passes the package's -->
+    <Version>1.1.0</Version>
     <Product>Hidamari</Product>
     <Company>Hidamari</Company>
     <!-- lets the project build on any machine (the compile check runs on Linux), the app runs on Windows only -->
@@ -50,6 +50,8 @@
     <!-- the Direct3D drawing (stage 4): the shader, and the Mac's Metal textures as they are (shared/textures) -->
     <EmbeddedResource Include="Wall\wall.hlsl" LogicalName="wall.hlsl" />
     <EmbeddedResource Include="..\shared\textures\*.htex.gz" Link="Wall\textures\%(Filename)%(Extension)" LogicalName="textures/%(Filename)%(Extension)" />
+    <!-- Mac update 1.4: the photo plants cut into pieces, for the window's plant in the wind (Core/WindowLeaves.cs) -->
+    <EmbeddedResource Include="..\shared\textures\rig*.json" Link="Wall\textures\%(Filename)%(Extension)" LogicalName="textures/%(Filename)%(Extension)" />
     <!-- tray icons, made from the Hidamari menu bar sign of the Mac app -->
     <EmbeddedResource Include="Resources\tray-black.ico" LogicalName="tray-black.ico" />
     <EmbeddedResource Include="Resources\tray-white.ico" LogicalName="tray-white.ico" />
@@ -60,6 +62,13 @@
     <EmbeddedResource Include="Card\card.html" LogicalName="card/card.html" />
     <EmbeddedResource Include="Card\card.css" LogicalName="card/card.css" />
     <EmbeddedResource Include="Card\card.js" LogicalName="card/card.js" />
+    <!-- the sky's colours, shared by the card and the support window; the support window's page (the Mac's update 1.4)
+         and the app's icon on it -->
+    <EmbeddedResource Include="Card\sky.js" LogicalName="card/sky.js" />
+    <EmbeddedResource Include="Card\support.html" LogicalName="card/support.html" />
+    <EmbeddedResource Include="Card\support.css" LogicalName="card/support.css" />
+    <EmbeddedResource Include="Card\support.js" LogicalName="card/support.js" />
+    <EmbeddedResource Include="..\Package\Images\Square44x44Logo.targetsize-256.png" Link="Card\icon.png" LogicalName="card/img/icon.png" />
     <EmbeddedResource Include="..\shared\grain.png" Link="Card\grain.png" LogicalName="card/img/grain.png" />
     <EmbeddedResource Include="..\shared\fonts\IBMPlexMono-Regular.ttf" Link="Card\IBMPlexMono-Regular.ttf" LogicalName="card/fonts/IBMPlexMono-Regular.ttf" />
     <EmbeddedResource Include="..\shared\fonts\IBMPlexMono-Medium.ttf" Link="Card\IBMPlexMono-Medium.ttf" LogicalName="card/fonts/IBMPlexMono-Medium.ttf" />

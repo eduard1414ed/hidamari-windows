@@ -8,6 +8,16 @@ static class Program
     const string MutexName = @"Local\Hidamari";
     const string AgainName = @"Local\Hidamari.Again";
     public static string Version => typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0";
+    /// The version as people see it (the card's settings, the support window), like the Mac's short version: "1.1",
+    /// and "1.1.1" only when there is a third number.
+    public static string ShortVersion
+    {
+        get
+        {
+            var v = typeof(Program).Assembly.GetName().Version;
+            return v == null ? "0" : v.Build > 0 ? $"{v.Major}.{v.Minor}.{v.Build}" : $"{v.Major}.{v.Minor}";
+        }
+    }
 
     [STAThread]
     static int Main()

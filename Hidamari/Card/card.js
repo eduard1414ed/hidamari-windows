@@ -31,9 +31,10 @@ let A = {
   shown: Date.now(), now: Date.now(), place: { name: 'Berlin', country: 'Germany', lat: 52.52, lng: 13.405, tz: 'Europe/Berlin' },
   placeMode: 'automatic', locationUnavailable: false, live: true, animation: false,
   ownThumbs: 0, glass: 'plain', anchor: 'bottom', insets: { left: 0, top: 0, right: 0, bottom: 0 }, check: false,
+  version: '',
 };
-/** What only the open card knows. */
-const ui = { dragging: false, pickerOpen: false, settingsOpen: false };
+/** What only the open card knows. `more`: the film's second row is open (update 1.4). */
+const ui = { dragging: false, pickerOpen: false, settingsOpen: false, more: false };
 /** The city search: what is typed, the lines the app found for it, the line Enter picks (0 the current location,
  *  1… the cities, null none), and the number of the last letter sent, so older answers are dropped. */
 const search = { open: false, query: '', results: [], highlight: null, id: 0 };
@@ -65,31 +66,8 @@ function moment() {
 }
 const sunAltitude = (ms, lat, lng) => C.sky(+ms, +lat, +lng).alt / C.RAD;
 
-// ---------- Card colours: the sky of the hour (SkyPalette.swift, as on the site) ----------
-const hex = (h, a = 1) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16), a];
-const SKY = {
-  day: { stops: [[[178, 198, 232, 0.86], 0], [[214, 218, 226, 0.80], 0.46], [[246, 214, 184, 0.86], 1]], glow: hex('#ffb45e'), line: hex('#fff6e4'), halo: [255, 178, 84, 0.85], tint: hex('#ffd27a'), sw: [hex('#f0a457'), hex('#f6c76f')], ink: 'dark' },
-  golden: { stops: [[[110, 112, 186, 0.88], 0], [[196, 134, 152, 0.84], 0.48], [[246, 168, 108, 0.90], 1]], glow: hex('#ff8e4a'), line: hex('#fff1dc'), halo: [255, 128, 64, 0.9], tint: hex('#ffb35c'), sw: [hex('#f0a457'), hex('#f6c76f')], ink: 'white' },
-  night: { stops: [[[10, 15, 36, 0.90], 0], [[22, 31, 62, 0.88], 0.55], [[40, 52, 88, 0.88], 1]], glow: hex('#7f97ff'), line: hex('#cfd9ff'), halo: [150, 175, 255, 0.9], tint: hex('#e6edff'), sw: [hex('#7f93d8'), hex('#aebdf2')], ink: 'light' },
-};
-const INK = { dark: { text: [29, 33, 48], soft: 0.55 }, white: { text: [255, 255, 255], soft: 0.72 }, light: { text: [238, 241, 251], soft: 0.55 } };
-/** How opaque the sky's colours are: as in the design over the system's blur or without blur; the site's glass is
- *  0.55 of that, made for a blurred wall behind it. Plain is the chosen one. */
-const GLASS = { acrylic: 1, plain: 1, site: 0.55 };
-const mixC = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-function mixSky(a, b, t) {
-  return { stops: a.stops.map((s, i) => [mixC(s[0], b.stops[i][0], t), s[1] + (b.stops[i][1] - s[1]) * t]), glow: mixC(a.glow, b.glow, t), line: mixC(a.line, b.line, t),
-    halo: mixC(a.halo, b.halo, t), tint: mixC(a.tint, b.tint, t), sw: [mixC(a.sw[0], b.sw[0], t), mixC(a.sw[1], b.sw[1], t)], ink: a.ink };
-}
-const lum = (c) => 0.2126729 * Math.pow(c[0] / 255, 2.4) + 0.7151522 * Math.pow(c[1] / 255, 2.4) + 0.0721750 * Math.pow(c[2] / 255, 2.4);
-function apca(t, b) { const tl = lum(t), bl = lum(b); return bl > tl ? (Math.pow(bl, 0.56) - Math.pow(tl, 0.57)) * 1.14 : (Math.pow(tl, 0.62) - Math.pow(bl, 0.65)) * 1.14; }
-function skyAt(h) {
-  if (h >= 12) return SKY.day;
-  if (h <= -6) return SKY.night;
-  if (h >= 2) { const p = mixSky(SKY.golden, SKY.day, (h - 2) / 10), mid = p.stops[1][0]; p.ink = apca(INK.dark.text, mid) >= apca(INK.white.text, mid) ? 'dark' : 'white'; return p; }
-  const t = (h + 6) / 8, p = mixSky(SKY.night, SKY.golden, t); p.ink = t >= 0.5 ? 'white' : 'light'; return p;
-}
-const rgba = (c, a) => `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${(+(a ?? (c[3] ?? 1))).toFixed(3)})`;
+// ---------- Card colours: the sky of the hour (sky.js: SkyPalette.swift, as on the site) ----------
+const { INK, GLASS, skyAt, rgba } = window.HidamariSky;
 
 // ---------- The arc of the sun (SunArc.swift, 236×112; site/src/page.js) ----------
 const ARC = { left: 4, span: 228, middle: 52, amp: 36 };
@@ -131,8 +109,17 @@ function arcFor(midnight, p) {
 }
 
 // ---------- Scenes, plants, walls, weather ----------
-const SCENES = [0, 1, 2, 3];               // 0 dapples, 1 window, 2 blinds, 3 water
-const SCENE_KEYS = ['dapples', 'window', 'blinds', 'water'];
+/** The scenes in the film's order, by their numbers (the Mac's Scene): the prototype's four, then the four of
+ *  update 1.4 as numbered in their sketch, 5 kept free. Saved settings hold the numbers; S.scenes is in this order. */
+const SCENES = [0, 1, 2, 3, 4, 6, 7, 8];
+const SCENE_KEYS = { 0: 'dapples', 1: 'window', 2: 'blinds', 3: 'water', 4: 'prism', 6: 'moon-gate', 7: 'tree', 8: 'glass-blocks' };
+const sceneName = (sc) => S.scenes[SCENES.indexOf(sc)];
+/** Light from: Right draws these mirrored, and their pictures turn over (Scene.mirrors: not the Prism, Ed 25 November 2026). */
+const MIRRORS = [1, 2, 6, 7, 8];
+/** The scenes that move, with their Animation row (WallLighting.moves: dapples, window, blinds, water, tree). */
+const MOVES = [0, 1, 2, 3, 7];
+/** Which side of its picture a narrow frame keeps, where the light is (Scene.thumbAlignment); the rest the middle. */
+const ALIGN = { 1: 'lead', 2: 'lead', 4: 'lead', 6: 'lead', 8: 'lead', 7: 'trail' };
 const PLANTS = [0, 2, 5];
 const OWN = -1;
 const WEATHER = ['clear', 'cloudy', 'rain', 'frost'];
@@ -144,6 +131,35 @@ const shownWeather = (scene) => choices(scene).includes(A.weather) ? A.weather :
  *  as the site's), the ones drawn for the own wall (OwnWallThumbs on the Mac) from the app's folder. */
 const thumb = (name) => A.wall === OWN ? `https://own.hidamari/${name}.jpg?v=${A.ownThumbs}` : `img/thumbs/${name}-${A.wall}.jpg`;
 const sceneThumb = (sc) => thumb(sc === 1 ? `window-${A.plant}` : SCENE_KEYS[sc]);
+
+// ---------- The film's rows (CardParts.swift: FilmPage, FilmLayout) ----------
+/** 54 high, 3 apart, the chosen frame 2.6 times as wide; 4 points of each edge behind the stack show; the card's
+ *  content is 264 wide (300 less 18 on each side). */
+const FILM = { size: 4, height: 54, gap: 3, wide: 2.6, edge: 4, width: 264 };
+/** The edges behind the stack: their heights and opacities, as in the mockup. */
+const EDGE_LOOKS = [{ height: 46, opacity: 0.6 }, { height: 38, opacity: 0.42 }];
+/** What the film shows. Up to five scenes all fit in one row; with more, the first four and the stack of the others:
+ *  on top the first of them (while the second row is closed, the chosen scene when it is one of them), behind it the
+ *  edges of the next two. `more`: the second row, the same scenes in the film's order. */
+function filmPage(chosen, open) {
+  if (SCENES.length <= FILM.size + 1) return { scenes: SCENES, stack: [], more: [], edges: [] };
+  const scenes = SCENES.slice(0, FILM.size), more = SCENES.slice(FILM.size);
+  const stack = !open && more.includes(chosen) ? [chosen].concat(more.filter((x) => x !== chosen)) : more;
+  return { scenes, more, stack, edges: stack.slice(1, 3) };
+}
+/** Widths and places of the frames in a row: `count` frames, the chosen one at `selected` (-1 none), `tail` the room
+ *  the stack's edges take at the end. */
+function filmLayout(count, selected, tail = 0) {
+  const unit = (FILM.width - tail - FILM.gap * (count - 1)) / (count - 1 + (selected >= 0 ? FILM.wide : 1));
+  const w = (i) => i === selected ? unit * FILM.wide : unit;
+  return { w, x: (i) => { let x = 0; for (let k = 0; k < i; k++) x += w(k) + FILM.gap; return x; } };
+}
+/** The first row: its scenes and the stack; with the second row open, the stack goes away and the four take the whole width. */
+function firstRow(page, chosen, open) {
+  const selected = page.scenes.indexOf(chosen);
+  if (open || page.stack.length === 0) return filmLayout(page.scenes.length, selected);
+  return filmLayout(page.scenes.length + 1, selected, page.edges.length * (FILM.edge + FILM.gap));
+}
 /** Colour of each approved wall in the shade, as the prototype paints its colour buttons (wall.html, wallShades). */
 const WALL_SHADES = C.WALLS.map((w) => C.linHex(C.hexLin(w.c).map((v, k) => v * w.amb[k])));
 
@@ -191,6 +207,9 @@ arcBox.setAttribute('aria-label', S.timeOfDay);
 $('quit').textContent = S.quit;
 $('gear').setAttribute('aria-label', S.settings);
 $('settingsBack').setAttribute('aria-label', S.back);
+$('settingsCaption').textContent = S.settings;
+$('settingsQuit').textContent = S.quit;
+$('madeBy').textContent = S.madeBy;
 $('loginTitle').textContent = S.launchAtLogin;
 $('loginSwitch').setAttribute('aria-label', S.launchAtLogin);
 $('screensTitle').textContent = S.screens;
@@ -235,15 +254,47 @@ const ownButton = el('button', 'wall-dot own', { type: 'button', 'aria-label': S
 ownButton.addEventListener('click', () => { ui.pickerOpen = !ui.pickerOpen; post({ type: 'picker', open: ui.pickerOpen }); render(); });
 $('walls').appendChild(ownButton);
 
-const sceneButtons = SCENES.map((sc) => {
-  const b = el('button', 'scene' + (sc === 1 || sc === 2 ? ' left' : ''), { type: 'button', 'aria-label': S.scenes[sc] });
+const PAGE = filmPage(-1, false);
+function sceneFrame(sc, parent) {
+  const b = el('button', 'scene' + (ALIGN[sc] ? ' ' + ALIGN[sc] : ''), { type: 'button', 'aria-label': sceneName(sc) });
   const img = el('img', '', { alt: '', decoding: 'async', draggable: 'false' });
-  const name = el('span', 'scene-name', { 'aria-hidden': 'true' }); name.textContent = S.scenes[sc];
+  const name = el('span', 'scene-name', { 'aria-hidden': 'true' }); name.textContent = sceneName(sc);
   b.append(img, name);
   b.addEventListener('click', () => { if (A.scene !== sc) choose({ scene: sc }); });
-  $('film').appendChild(b);
-  return { b, img };
+  parent.appendChild(b);
+  return { sc, b, img };
+}
+/** Every scene's frame: the first row's in the film, the others' in the second row. */
+const sceneButtons = PAGE.scenes.map((sc) => sceneFrame(sc, $('film'))).concat(PAGE.more.map((sc) => sceneFrame(sc, $('moreFilm'))));
+const frameOf = (sc) => sceneButtons.find((f) => f.sc === sc);
+// the stack at the end of the first row: a click opens the second row (while that is open the stack is not shown)
+const stackGroup = el('div', 'stack-group');
+const stackButton = el('button', 'scene stack', { type: 'button', 'aria-label': S.allScenes });
+const stackImg = el('img', '', { alt: '', decoding: 'async', draggable: 'false' });
+const stackName = el('span', 'scene-name', { 'aria-hidden': 'true' });
+stackButton.append(stackImg, stackName);
+stackButton.addEventListener('click', () => setMore(true));
+stackGroup.appendChild(stackButton);
+// the right ends of two more pictures behind it, each lower and paler; only for the eye, clicks pass them by
+const edgeParts = EDGE_LOOKS.map((look) => {
+  const d = el('div', 'edge', { 'aria-hidden': 'true' });
+  const img = el('img', '', { alt: '', decoding: 'async', draggable: 'false' });
+  d.appendChild(img);
+  d.style.height = look.height + 'px';
+  d.style.opacity = look.opacity;
+  stackGroup.appendChild(d);
+  return { d, img };
 });
+if (PAGE.stack.length) $('film').appendChild(stackGroup);
+$('fewer').setAttribute('aria-label', S.fewerScenes);
+$('fewer').addEventListener('click', () => setMore(false));
+/** Opens or folds the second row. */
+function setMore(open) {
+  if (ui.more === open) return;
+  ui.more = open;
+  post({ type: 'more', open });
+  render();
+}
 
 const plantButtons = PLANTS.map((pl) => {
   const b = el('button', 'plant', { type: 'button', 'aria-label': S.plants[pl] });
@@ -282,6 +333,8 @@ $('animationSwitch').addEventListener('click', () => choose({ animation: !A.anim
 // where the weather and the cities come from: their pages in the browser
 $('creditsMet').addEventListener('click', () => post({ type: 'openLink', to: 'met' }));
 $('creditsGeo').addEventListener('click', () => post({ type: 'openLink', to: 'geonames' }));
+// Made by Ed Tsarionov: Ed's site in the browser (Links.Author)
+$('madeBy').addEventListener('click', () => post({ type: 'openLink', to: 'author' }));
 
 // ---------- The city search (PlaceSearch.swift) ----------
 const searchInput = $('searchInput'), searchRows = $('searchRows');
@@ -366,6 +419,7 @@ function renderRows() {
 }
 
 $('quit').addEventListener('click', () => post({ type: 'quit' }));
+$('settingsQuit').addEventListener('click', () => post({ type: 'quit' }));
 $('gear').addEventListener('click', () => { closeSearch(false); ui.settingsOpen = true; post({ type: 'settings', open: true }); render(); $('settingsBack').focus({ preventScroll: true }); });
 $('settingsBack').addEventListener('click', () => closeSettings());
 function closeSettings() { ui.settingsOpen = false; post({ type: 'settings', open: false }); render(); }
@@ -582,12 +636,93 @@ let arcKey = '', arc = null, inkNow = '', foldsInstant = true;
 const css = {};
 function setVar(name, value) { if (css[name] !== value) { css[name] = value; card.style.setProperty(name, value); } }
 const sunG = $('sun'), sunCore = $('sunCore'), realSun = $('realSun'), drop = $('drop');
+/** Space above the second row: under Window's plants 10, otherwise the film's gap (Panel.swift). */
+const moreAbove = () => A.scene === 1 ? 10 : FILM.gap;
+const moreOpen = () => ui.more && PAGE.more.length > 0;
 const folds = [
   { outer: $('firstFold'), inner: $('first'), open: () => !A.firstAnswered },
   { outer: $('plantsFold'), inner: $('plants'), open: () => A.scene === 1 },
-  { outer: $('animationFold'), inner: $('animationInner'), open: () => A.scene === 0 || A.scene === 3 },
+  { outer: $('moreFold'), inner: $('moreInner'), open: moreOpen, height: () => FILM.height + moreAbove() },
+  { outer: $('fewerFold'), inner: $('fewer'), open: moreOpen, height: () => 20 },
+  { outer: $('animationFold'), inner: $('animationInner'), open: () => MOVES.includes(A.scene) },
   { outer: $('pickerFold'), inner: $('picker'), open: () => ui.pickerOpen },
 ];
+/** The card's two faces (settings 1.4): each its own height, the card grows or shrinks into the one shown. */
+const faces = { main: { outer: $('mainFace'), inner: $('mainInner') }, settings: { outer: $('settingsFace'), inner: $('settings') } };
+let faceShown = 'main', faceTimer = 0;
+function renderFaces(instant) {
+  const want = ui.settingsOpen ? 'settings' : 'main';
+  const show = faces[want], hide = faces[want === 'main' ? 'settings' : 'main'];
+  show.outer.classList.remove('gone'); hide.outer.classList.add('gone');
+  show.outer.inert = false; hide.outer.inert = true;
+  attr(show.outer, 'aria-hidden', false); attr(hide.outer, 'aria-hidden', true);
+  if (instant) {
+    clearTimeout(faceTimer);
+    for (const f of [show, hide]) { f.outer.style.transition = 'none'; f.outer.classList.remove('moving'); }
+    show.outer.style.height = ''; hide.outer.style.height = '0px';
+    void card.offsetHeight;
+    show.outer.style.transition = ''; hide.outer.style.transition = '';
+    faceShown = want;
+    return;
+  }
+  if (want === faceShown) {
+    // settled: the one shown as tall as it is, the other folded
+    if (!show.outer.classList.contains('moving')) show.outer.style.height = '';
+    hide.outer.style.height = '0px';
+    return;
+  }
+  // from where each is now to its new height, smoothly, as when a scene changes (Ed's variant 1, 25 November 2026)
+  for (const f of [show, hide]) { f.outer.style.height = f.outer.getBoundingClientRect().height + 'px'; f.outer.classList.add('moving'); }
+  void card.offsetHeight;
+  show.outer.style.height = show.inner.offsetHeight + 'px';
+  hide.outer.style.height = '0px';
+  faceShown = want;
+  clearTimeout(faceTimer);
+  faceTimer = setTimeout(() => {
+    show.outer.classList.remove('moving'); hide.outer.classList.remove('moving');
+    show.outer.style.height = '';
+    reportSize();
+  }, 330);
+}
+
+/** The film: each frame's width and picture, the stack, the second row; the plants under the Window frame. */
+function renderFilm() {
+  const open = moreOpen(), page = filmPage(A.scene, open), row1 = firstRow(page, A.scene, open);
+  const row2 = filmLayout(page.more.length, page.more.indexOf(A.scene));
+  const mirrored = (sc) => !!A.windowOnRight && MIRRORS.includes(sc);
+  const place = (b, width, i) => { b.style.width = width.toFixed(2) + 'px'; b.style.marginLeft = i > 0 ? FILM.gap + 'px' : '0px'; };
+  page.scenes.forEach((sc, i) => place(frameOf(sc).b, row1.w(i), i));
+  page.more.forEach((sc, i) => place(frameOf(sc).b, row2.w(i), i));
+  for (const { sc, b, img } of sceneButtons) {
+    attr(b, 'aria-pressed', sc === A.scene);
+    b.classList.toggle('mirrored', mirrored(sc));
+    const src = sceneThumb(sc); if (img.getAttribute('src') !== src) img.src = src;
+  }
+  if (page.stack.length) {
+    const top = page.stack[0];
+    // while the second row is open the stack keeps its last width and fades away with its room
+    if (!open) stackButton.style.width = row1.w(page.scenes.length).toFixed(2) + 'px';
+    stackGroup.style.width = open ? '0px' : (row1.w(page.scenes.length) + page.edges.length * (FILM.edge + FILM.gap)).toFixed(2) + 'px';
+    stackGroup.style.marginLeft = open ? '0px' : FILM.gap + 'px';
+    stackGroup.classList.toggle('gone', open);
+    stackGroup.inert = open;
+    attr(stackGroup, 'aria-hidden', open);
+    stackButton.className = 'scene stack' + (ALIGN[top] ? ' ' + ALIGN[top] : '') + (mirrored(top) ? ' mirrored' : '');
+    text(stackName, '+' + page.stack.length);
+    const src = sceneThumb(top); if (stackImg.getAttribute('src') !== src) stackImg.src = src;
+    edgeParts.forEach(({ d, img }, i) => {
+      const sc = page.edges[i];
+      d.hidden = sc === undefined;
+      if (sc === undefined) return;
+      d.classList.toggle('mirrored', mirrored(sc));
+      const esrc = sceneThumb(sc); if (img.getAttribute('src') !== esrc) img.src = esrc;
+    });
+  }
+  // the plants line up with the Window frame of the first row as it is now
+  const wpage = filmPage(1, open), wrow = firstRow(wpage, 1, open), wi = wpage.scenes.indexOf(1);
+  $('plants').style.marginLeft = wrow.x(wi).toFixed(2) + 'px';
+  $('plants').style.width = wrow.w(wi).toFixed(2) + 'px';
+}
 
 function render() {
   const t = moment(), p = t.p;
@@ -649,12 +784,12 @@ function render() {
   attr(ownButton, 'aria-label', ui.pickerOpen ? `${S.ownWall}, ${S.open}` : S.ownWall);
 
   // scenes, plants, switches, weather
-  sceneButtons.forEach(({ b, img }, sc) => { attr(b, 'aria-pressed', sc === A.scene); b.classList.toggle('mirrored', !!A.windowOnRight && (sc === 1 || sc === 2)); const src = sceneThumb(sc); if (img.getAttribute('src') !== src) img.src = src; });
+  renderFilm();
   plantButtons.forEach(({ b, img }, i) => { attr(b, 'aria-pressed', PLANTS[i] === A.plant); b.classList.toggle('mirrored', !!A.windowOnRight); const src = thumb(`plant-${PLANTS[i]}`); if (img.getAttribute('src') !== src) img.src = src; });
   attr($('followSwitch'), 'aria-checked', A.follow);
   attr($('liveSwitch'), 'aria-checked', !!A.live);
   attr($('animationSwitch'), 'aria-checked', !!A.animation);
-  attr($('animationSwitch'), 'tabindex', A.scene === 0 || A.scene === 3 ? 0 : -1);
+  attr($('animationSwitch'), 'tabindex', MOVES.includes(A.scene) ? 0 : -1);
   $('weather').classList.toggle('live', !!A.live);
   // where the weather and the cities come from: the last line of the settings
   text($('creditsMet'), S.creditWeather); text($('creditsGeo'), S.creditPlaces);
@@ -669,15 +804,13 @@ function render() {
 
   // the settings and the first launch
   card.classList.toggle('settings-open', ui.settingsOpen);
-  $('settings').hidden = !ui.settingsOpen;
-  attr($('main'), 'aria-hidden', ui.settingsOpen);
+  text($('settingsVersion'), S.settingsVersion.replace('{0}', A.version || ''));
   attr($('loginSwitch'), 'aria-checked', !!A.login);
   attr($('screensAll'), 'aria-pressed', A.screens !== 'main');
   attr($('screensMain'), 'aria-pressed', A.screens === 'main');
   attr($('lightLeft'), 'aria-pressed', !A.windowOnRight);
   attr($('lightRight'), 'aria-pressed', !!A.windowOnRight);
   $('desktopsGroup').hidden = !A.desktopsOffered;
-  $('desktopsLine').hidden = !A.desktopsOffered;
   attr($('desktopsAll'), 'aria-pressed', A.desktops !== 'thisOne');
   attr($('desktopsThis'), 'aria-pressed', A.desktops === 'thisOne');
   attr($('firstNotNow'), 'aria-pressed', false);
@@ -685,14 +818,16 @@ function render() {
 
   // the folds: their height is set here, so the card's new height is known before it gets there
   if (foldsInstant) card.classList.add('instant');
+  $('moreInner').style.paddingTop = moreAbove() + 'px';
   for (const f of folds) {
-    const open = f.open(), want = open ? f.inner.offsetHeight : 0;
+    const open = f.open(), want = open ? (f.height ? f.height() : f.inner.offsetHeight) : 0;
     f.outer.classList.toggle('open', open);
     if (foldsInstant) f.outer.style.transition = 'none';
     f.outer.style.height = want + 'px';
     attr(f.outer, 'aria-hidden', !open);
     f.outer.inert = !open;
   }
+  renderFaces(foldsInstant);
   if (foldsInstant) {
     void card.offsetHeight;
     for (const f of folds) f.outer.style.transition = '';
@@ -708,7 +843,10 @@ function render() {
 function reportSize() {
   const now = card.getBoundingClientRect().height;
   let target = now;
-  for (const f of folds) target += parseFloat(f.outer.style.height || '0') - f.outer.getBoundingClientRect().height;
+  const add = (e) => { const h = e.style.height; if (h && h.endsWith('px')) target += parseFloat(h) - e.getBoundingClientRect().height; };
+  add(faces.main.outer); add(faces.settings.outer);
+  // the folds count only while the main face is shown as it is
+  if (!ui.settingsOpen && faces.main.outer.style.height === '') for (const f of folds) add(f.outer);
   post({ type: 'size', now: Math.round(now * 100) / 100, target: Math.round(target * 100) / 100 });
   if (A.check) layoutSoon();
 }
@@ -725,17 +863,20 @@ function layout() {
     search: { open: search.open, query: search.query, highlight: search.highlight, focused: document.activeElement === searchInput,
       lines: searchLines.map((b) => ({ text: b.getAttribute('aria-label'), rect: r(b), lit: b.classList.contains('lit') })) }, wave: r($('wave')), dial: r($('dial')), follow: r($('followSwitch')), live: r($('liveSwitch')), animation: r($('animationSwitch')),
     gear: r($('gear')), quit: r($('quit')), back: r($('settingsBack')), login: r($('loginSwitch')),
+    settingsQuit: r($('settingsQuit')), madeBy: r($('madeBy')), version: r($('settingsVersion')), stack: r(stackButton), fewer: r($('fewer')),
     screensAll: r($('screensAll')), screensMain: r($('screensMain')), lightLeft: r($('lightLeft')), lightRight: r($('lightRight')), desktopsAll: r($('desktopsAll')), desktopsThis: r($('desktopsThis')),
     firstNotNow: r($('firstNotNow')), firstOpen: r($('firstOpen')), own: r(ownButton), shadeOn: r($('shadeOn')), shadeOff: r($('shadeOff')),
     arcGeometry: ARC, picker: ui.pickerOpen, settings: ui.settingsOpen, time: $('time').textContent,
     checked: { follow: A.follow, login: !!A.login, screensMain: A.screens === 'main', lightRight: !!A.windowOnRight,
-      mirroredScenes: sceneButtons.map(({ b }, i) => b.classList.contains('mirrored') ? i : -1).filter((i) => i >= 0).join(','),
+      mirroredScenes: sceneButtons.filter(({ b }) => b.classList.contains('mirrored')).map(({ sc }) => sc).join(','),
+      more: moreOpen(), stackShown: !stackGroup.classList.contains('gone'), stackTop: filmPage(A.scene, moreOpen()).stack[0] ?? null,
+      stackCaption: stackName.textContent, versionText: $('settingsVersion').textContent,
       mirroredPlants: plantButtons.every(({ b }) => b.classList.contains('mirrored')), desktopsThis: A.desktops === 'thisOne',
       desktopsOffered: !!A.desktopsOffered, first: !A.firstAnswered, ink: inkNow, weather: shownWeather(A.scene),
       scene: A.scene, wall: A.wall, plant: A.plant, ownThumbs: A.ownThumbs, glass: A.glass, live: !!A.live, animation: !!A.animation,
       animationRow: $('animationFold').classList.contains('open') ? $('animationFold').getBoundingClientRect().height : 0,
       weatherIcons: !$('weather').classList.contains('live'), place: $('placeName').textContent, placeLabel: $('place').getAttribute('aria-label') } };
-  sceneButtons.forEach(({ b }, i) => { out[`scene${i}`] = r(b); });
+  sceneButtons.forEach(({ sc, b }) => { out[`scene${sc}`] = r(b); });
   plantButtons.forEach(({ b }, i) => { out[`plant${PLANTS[i]}`] = r(b); });
   wallButtons.forEach((b, i) => { out[`wall${i}`] = r(b); });
   weatherButtons.forEach(({ b }, i) => { out[`weather-${WEATHER[i]}`] = r(b); });
@@ -762,6 +903,8 @@ function onApp(m) {
     if (m.reset) {
       // the card opens anew: the settings and the picker closed, nothing animates into place
       ui.pickerOpen = false; ui.settingsOpen = false; ui.dragging = false; foldsInstant = true; padDrawn = '';
+      // the chosen scene is always in view: the second row is open when it is one of the hidden ones (Panel.swift)
+      ui.more = PAGE.more.includes(A.scene);
       if (search.open) closeSearch(false);
     }
     // the hand wins while it drags: the app's word can be about an earlier place of the drag

@@ -2,13 +2,22 @@ namespace Hidamari;
 
 // The live motion of prototype/live-motion.html, as the Mac app's Motion.swift keeps it (update 1.1): the same rules and
 // numbers. Tests/Program.cs runs this clock for a day and a week, as tools/check-motion.swift does on the Mac.
+// Mac update 1.4: the Tree's rustle and the motion of the window and the blinds (design/window-motion), kept the same way.
 
 /// What the shader's motion uniforms are for one frame: uT (seconds), uWind (the water's strength), uWindLeaves.
 /// `Still` is the approved still picture.
-public readonly record struct Motion(double T, double Wind, double WindLeaves)
+/// Mac update 1.4 (the window and the blinds, design/window-motion):
+/// - `Moving`: uMoving. The window scenes draw a lighter frame while they move, and the rain and the snow are drawn differently.
+/// - `WindMs`: the wind in m/s the window's leaves are posed with (their own scale, e = ms / 15).
+/// - `LeafT`: the leaves' clock (seconds): posed on the processor in 64-bit numbers, so it runs on and is never started again.
+/// - `Wt`: the rain's slow clock uWT while the window moves. Still, uWT is the frame's minutes / 25 and changes when the
+///   light is worked out again (every five minutes): in motion that would make the large drops and old trails jump, so
+///   here it runs on smoothly with real time. Negative: the still uWT.
+public readonly record struct Motion(double T, double Wind, double WindLeaves, bool Moving = false, double WindMs = 0, double LeafT = 0, double Wt = -1)
 {
     public static readonly Motion Still = new(0, 0, 0);
-    public override string ToString() => $"t {T:F3} s, wind {Wind:F3}, leaves {WindLeaves:F3}";
+    public override string ToString() =>
+        $"t {T:F3} s, wind {Wind:F3}, leaves {WindLeaves:F3}" + (Moving ? $", moving: {WindMs:F1} m/s, leaves' clock {LeafT:F1} s, rain's clock {Wt:F3}" : "");
 }
 
 /// The motion of one frame. While one motion turns into another (`From` → `Motion`), the frame is both of them, mixed:
@@ -31,6 +40,11 @@ public static class Wind
     public static double LeafWind(double ms) => 7 + 0.6 * Math.Min(ms, 15);
     /// What uWindLeaves is for this wind.
     public static double Leaves(double ms) => Strength(LeafWind(ms));
+
+    /// Mac update 1.4: how strongly the Tree rustles in this wind, on the sketch's wind slider (0…1; Ed looked at 0.4 and
+    /// approved it). As with the dapples' leaves, the crown never stands quite still: calm air gives 0.15. The steady
+    /// 4 m/s (Live weather off) gives 0.40; 10 m/s 0.78; from about 13.6 m/s on, the slider's full 1.
+    public static double Tree(double ms) => Math.Min(1, 0.15 + 0.0625 * Math.Max(ms, 0));
 }
 
 /// Keeps the motion's clock: which uT, uWind and uWindLeaves each frame gets (MotionClock on the Mac).
@@ -41,8 +55,11 @@ public static class Wind
 ///   The clock adds the phase up itself, in 64-bit numbers, and gives the shader a uT that lands on the same phase:
 ///   never more than one turn. A new wind changes the speed smoothly over `WaterRamp` seconds. While it moves, the
 ///   water no longer depends on the time of day (uPhase), so the light's recomputation every five minutes does not nudge it.
-/// - **Dapples** have no such repeat. When the wind changes, or every `LeavesSpan` seconds, a new clock starts at 0
-///   with the new wind, and for `Crossfade` seconds the frame is the old motion and the new one mixed.
+/// - **Dapples** have no such repeat (nor has the **Tree**'s rustle, Mac update 1.4, kept the same way). When the wind
+///   changes, or every `LeavesSpan` seconds, a new clock starts at 0 with the new wind, and for `Crossfade` seconds the
+///   frame is the old motion and the new one mixed.
+/// - **The window and the blinds** (Mac update 1.4) are kept like the dapples, plus the leaves' own clock that never
+///   starts again, and the rain's slow clock.
 public sealed class MotionClock
 {
     /// Dapples: the longest a clock runs before a new one takes over (seconds).
@@ -52,12 +69,25 @@ public sealed class MotionClock
     /// Water: how long a new wind takes to set the new speed.
     public const double WaterRamp = 8;
 
-    public enum Kind { Leaves, Water }
+    /// Leaves: the dapples; Water; Tree: the Tree's rustle (Mac update 1.4), kept like the dapples, with its own strength;
+    /// Window: the window and the blinds (Mac update 1.4, design/window-motion), kept like the dapples, plus the leaves' clock.
+    public enum Kind { Leaves, Water, Tree, Window }
     public readonly Kind Of;
+
+    /// The clock a scene (its number) moves with (Kind(scene:) on the Mac).
+    public static Kind KindFor(int scene) => scene == 3 ? Kind.Water : scene == 7 ? Kind.Tree : scene == 1 || scene == 2 ? Kind.Window : Kind.Leaves;
 
     // dapples
     double epochStart, epochLeaves;
     (double start, double leaves, double fadeStart)? old;
+    // window: the wind of this stretch in m/s, and the old one's while they are mixed; the leaves' clock starts once;
+    // the rain's slow clock where this stretch began, and the old stretch's
+    double epochMs, oldMs;
+    readonly double leafStart;
+    double epochWT, oldWT;
+    /// The slow clock is set back to the frame's minutes / 25 at a new stretch once it has run past this (a few days
+    /// without a pause), so its 32-bit steps stay fine; the crossfade hides the change.
+    public const double WtLimit = 500.0;
 
     // water
     double phase, last, speedFrom, speedTo, rampStart;
@@ -68,7 +98,10 @@ public sealed class MotionClock
     {
         Of = kind;
         epochStart = now;
-        epochLeaves = Wind.Leaves(windMs);
+        epochLeaves = kind == Kind.Tree ? Wind.Tree(windMs) : Wind.Leaves(windMs);
+        epochMs = windMs;
+        leafStart = now;
+        epochWT = StillWT(basePhase);
         phase = Wrap(basePhase);
         last = now;
         var w = Wind.Strength(windMs);
@@ -101,19 +134,52 @@ public sealed class MotionClock
             var t = Wrap(phase - basePhase) / Rate(wNow);
             return new MotionFrame(new Motion(t, wNow, Wind.Leaves(windMs)));
         }
-        var leaves = Wind.Leaves(windMs);
+        if (Of == Kind.Window)
+        {
+            // as the dapples: a new stretch every LeavesSpan seconds and with every new wind, the old one mixed in for
+            // `Crossfade` seconds. The leaves keep their own clock; only their wind changes with the stretch.
+            if (old == null && (windMs != epochMs || now - epochStart >= LeavesSpan))
+            {
+                old = (epochStart, 0.0, now);
+                oldMs = epochMs;
+                oldWT = epochWT;
+                // the slow clock runs on through the new stretch, unless it has run far
+                var on = epochWT + (now - epochStart) / 1500;
+                epochWT = on < WtLimit ? on : StillWT(basePhase);
+                epochStart = now;
+                epochMs = windMs;
+            }
+            var wm = WindowMotion(now - epochStart, epochMs, now - leafStart, epochWT + (now - epochStart) / 1500);
+            if (old is not { } wo) return new MotionFrame(wm);
+            var wk = Smooth((now - wo.fadeStart) / Crossfade);
+            if (wk >= 1) { old = null; return new MotionFrame(wm); }
+            return new MotionFrame(wm, WindowMotion(now - wo.start, oldMs, now - leafStart, oldWT + (now - wo.start) / 1500), wk);
+        }
+        // Leaves and Tree. The Tree: the same clock, its strength in uWind (what its shadow pass reads), uWindLeaves unused
+        var tree = Of == Kind.Tree;
+        var leaves = tree ? Wind.Tree(windMs) : Wind.Leaves(windMs);
         if (old == null && (leaves != epochLeaves || now - epochStart >= LeavesSpan))
         {
             old = (epochStart, epochLeaves, now);
             epochStart = now;
             epochLeaves = leaves;
         }
-        var motion = new Motion(now - epochStart, Wind.Strength(windMs), epochLeaves);
+        var motion = tree ? new Motion(now - epochStart, epochLeaves, 0)
+            : new Motion(now - epochStart, Wind.Strength(windMs), epochLeaves);
         if (old is not { } o) return new MotionFrame(motion);
         var k = Smooth((now - o.fadeStart) / Crossfade);
         if (k >= 1) { old = null; return new MotionFrame(motion); }
-        return new MotionFrame(motion, new Motion(now - o.start, motion.Wind, o.leaves), k);
+        var before = tree ? new Motion(now - o.start, o.leaves, 0)
+            : new Motion(now - o.start, motion.Wind, o.leaves);
+        return new MotionFrame(motion, before, k);
     }
+
+    /// The window's motion at clock `t` and wind `ms`, as window-motion.html's draw() sets it; `wt` the rain's slow clock.
+    public static Motion WindowMotion(double t, double ms, double leafT, double wt) =>
+        new(t, Wind.Strength(ms), Wind.Leaves(ms), Moving: true, WindMs: ms, LeafT: leafT, Wt: wt);
+
+    /// The still uWT of rain for the frame whose uPhase is `basePhase`: its minutes / 25 (WallLighting.Uniforms).
+    public static double StillWT(double basePhase) => basePhase / 6.2832 * 1440 / 25;
 
     /// True while dapples mix an old motion into the new one.
     public bool IsCrossfading => old != null;

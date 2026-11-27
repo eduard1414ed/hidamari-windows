@@ -345,6 +345,11 @@ sealed class D3DRenderer : IWallRenderer
         using (var b = Shot(2, 2)) o["blinds"] = Small(b);
         using (var b = Shot(0, 2)) o["dapples"] = Small(b);
         using (var b = Shot(3, 2)) o["water"] = Small(b);
+        // Mac update 1.4; the Tree still
+        using (var b = Shot(4, 2)) o["prism"] = Small(b);
+        using (var b = Shot(6, 2)) o["moon-gate"] = Small(b);
+        using (var b = Shot(7, 2)) o["tree"] = Small(b);
+        using (var b = Shot(8, 2)) o["glass-blocks"] = Small(b);
         return o;
     });
 

@@ -304,7 +304,8 @@ sealed class Animator : IDisposable
                 double phase = WallLighting.Phase(state.Input.Minutes);
                 if (motion == null || motionScene != scene)
                 {
-                    motion = new MotionClock(scene == 3 ? MotionClock.Kind.Water : MotionClock.Kind.Leaves, now, wind, phase);
+                    // the clock's kind follows the scene (Mac update 1.4: the Tree's rustle, the window and the blinds)
+                    motion = new MotionClock(MotionClock.KindFor(scene), now, wind, phase);
                     motionScene = scene;
                 }
                 f = motion.Frame(now, wind, phase);
@@ -324,8 +325,9 @@ sealed class Animator : IDisposable
                 }
                 held = f;
             }
-            var u = With(u0, f.Motion);
-            var from = f.From is { } fm && f.Mix < 1 ? With(u0, fm) : null;
+            WallUniformValues U(Motion m) => Full(scene) ? WallLighting.Uniforms(state.Input with { Width = (int)u0.Res[0], Height = (int)u0.Res[1], Motion = m }) : With(u0, m);
+            var u = U(f.Motion);
+            var from = f.From is { } fm && f.Mix < 1 ? U(fm) : null;
             var sw = Stopwatch.StartNew();
             try
             {
@@ -354,8 +356,14 @@ sealed class Animator : IDisposable
             }
         }
 
-        /// The still uniforms with this motion: only the three motion numbers differ from frame to frame.
+        /// The still uniforms with this motion: for the dapples and the water only the three motion numbers differ from
+        /// frame to frame.
         static WallUniformValues With(WallUniformValues u, Motion m) => u with { T = m.T, Wind = m.Wind, WindLeaves = m.WindLeaves };
+
+        /// Mac update 1.4: the Tree (its shadow's clock and wind), the window and the blinds (the plant's pose, the rain's
+        /// clock, the moving shader) take more from the motion, so their uniforms are worked out whole for every frame,
+        /// as the Mac's MetalRenderer does for every scene.
+        static bool Full(int scene) => scene is not (0 or 3);
 
         public string Summary()
         {

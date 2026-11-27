@@ -71,7 +71,7 @@ jobs:
           dotnet-version: '10.0.x'
       - name: The package for the Store
         shell: pwsh
-        run: ci/package.ps1 -Version 1.0.0 -Out out/store
+        run: ci/package.ps1 -Version 1.1.0 -Out out/store
       - name: A newer package, for the update check only
         shell: pwsh
         run: ci/package.ps1 -Version 1.0.1 -Out out/update

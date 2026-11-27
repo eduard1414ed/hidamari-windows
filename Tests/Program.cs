@@ -184,18 +184,22 @@ static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
         "clear 0, cloudy 0.8, rain 0.9 → 0.2 in the window, frost 0.7 → 0.3, rain elsewhere cloudy");
 }
 
-// ---------------- stage 4: the shader's numbers, the same as the Mac's ----------------
+// ---------------- stage 4 and the Mac's update 1.4: the shader's numbers, the same as the Mac's ----------------
 {
     using var gz = new System.IO.Compression.GZipStream(File.OpenRead(Path.Combine(here, "lighting.json.gz")), System.IO.Compression.CompressionMode.Decompress);
     using var doc = System.Text.Json.JsonDocument.Parse(gz);
-    int states = 0, off = 0; double worst = 0; string worstAt = "";
+    int states = 0, off = 0, newer = 0; double worst = 0; string worstAt = "", firstOff = "";
     foreach (var item in doc.RootElement.EnumerateArray())
     {
+        var name = item.GetProperty("name").GetString()!;
         var i = item.GetProperty("input");
         var c = i.GetProperty("custom");
         (double, double)? shade = c.GetProperty("shade").ValueKind == System.Text.Json.JsonValueKind.Object
             ? (c.GetProperty("shade").GetProperty("x").GetDouble(), c.GetProperty("shade").GetProperty("y").GetDouble()) : null;
         var m = i.GetProperty("motion");
+        double Opt(System.Text.Json.JsonElement e, string k, double otherwise) => e.TryGetProperty(k, out var v) ? v.GetDouble() : otherwise;
+        // the motion of the Mac's update 1.4 (the window and the blinds); the older states have none of it
+        bool moving = m.TryGetProperty("moving", out var mv) && mv.GetBoolean();
         var f = new WallFrameInput
         {
             Ms = i.GetProperty("ms").GetDouble(), Minutes = i.GetProperty("minutes").GetDouble(), Lat = i.GetProperty("lat").GetDouble(), Lng = i.GetProperty("lng").GetDouble(),
@@ -203,12 +207,21 @@ static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
             Custom = new CustomWall(c.GetProperty("L").GetDouble(), c.GetProperty("x").GetDouble(), c.GetProperty("y").GetDouble(), c.GetProperty("k").GetDouble(), c.GetProperty("rough").GetDouble(), shade),
             WinPlant = i.GetProperty("winPlant").GetInt32(), Cloud = i.GetProperty("cloud").GetDouble(), Weather = i.GetProperty("weather").GetInt32(),
             Width = i.GetProperty("width").GetInt32(), Height = i.GetProperty("height").GetInt32(), Mirror = i.GetProperty("mirror").GetBoolean(),
-            Motion = new Motion(m.GetProperty("t").GetDouble(), m.GetProperty("wind").GetDouble(), m.GetProperty("windLeaves").GetDouble()),
+            Motion = new Motion(m.GetProperty("t").GetDouble(), m.GetProperty("wind").GetDouble(), m.GetProperty("windLeaves").GetDouble(),
+                moving, Opt(m, "windMs", 0), Opt(m, "leafT", 0), Opt(m, "wt", -1)),
         };
         var u = WallLighting.Uniforms(f);
         var s = item.GetProperty("uniforms");
         double[] A(string k) => s.GetProperty(k).ValueKind == System.Text.Json.JsonValueKind.Array ? s.GetProperty(k).EnumerateArray().Select(x => x.GetDouble()).ToArray() : new[] { s.GetProperty(k).GetDouble() };
-        var pairs = new (string name, double[] cs, double[] swift)[]
+        bool bad = false;
+        void Bad(string what) { bad = true; if (firstOff == "") firstOff = $"{name}: {what}"; }
+        void Near(string what, double cs, double swift)
+        {
+            double d = Math.Abs(cs - swift) / Math.Max(1, Math.Abs(swift));
+            if (d > worst) { worst = d; worstAt = $"{name} {what} {cs:R} vs {swift:R}"; }
+            if (d > 1e-9 || double.IsNaN(d)) Bad($"{what} {cs:R} vs {swift:R}");
+        }
+        var pairs = new List<(string name, double[] cs, double[] swift)>
         {
             ("res", u.Res, A("res")), ("wallH", new[] { u.WallH }, A("wallH")), ("tex", new[] { u.Tex }, A("tex")), ("src", new[] { u.Src }, A("src")),
             ("corner", new[] { u.Corner }, A("corner")), ("phase", new[] { u.Phase }, A("phase")), ("calm", new[] { u.Calm }, A("calm")), ("depth", u.Depth, A("depth")),
@@ -218,22 +231,174 @@ static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
             ("weather", new double[] { u.Weather }, A("weather")), ("t", new[] { u.T }, A("t")), ("wind", new[] { u.Wind }, A("wind")),
             ("windLeaves", new[] { u.WindLeaves }, A("windLeaves")), ("sunDegrees", new[] { u.SunDegrees }, A("sunDegrees")),
         };
-        bool bad = s.GetProperty("mirror").GetBoolean() != u.Mirror || s.GetProperty("plant").GetString()!.Replace("(", "").Replace(")", "").ToLowerInvariant() != u.Plant.ToString().ToLowerInvariant();   // Swift: photo(5)
-        foreach (var (name, cs, swift) in pairs)
+        // the Mac's update 1.4: the new uniforms, the plant in the wind, the Tree's shadow key, all numbers in the shader's order
+        bool v14 = s.TryGetProperty("phaseDay", out _);
+        if (v14)
         {
-            if (cs.Length != swift.Length) { bad = true; continue; }
-            for (int k = 0; k < cs.Length; k++)
+            pairs.Add(("phaseDay", new[] { u.PhaseDay }, A("phaseDay"))); pairs.Add(("glassNight", new[] { u.GlassNight }, A("glassNight")));
+            pairs.Add(("rainbow", new[] { u.Rainbow }, A("rainbow"))); pairs.Add(("all", u.All, A("all")));
+            if (s.GetProperty("moving").GetBoolean() != u.Moving) Bad("moving");
+            if (s.GetProperty("readsPlant").GetBoolean() != u.ReadsPlant) Bad("readsPlant");
+            if (s.GetProperty("readsTree").GetBoolean() != u.ReadsTree) Bad("readsTree");
+            var lv = s.GetProperty("leaves");
+            if ((lv.ValueKind == System.Text.Json.JsonValueKind.Object) != (u.Leaves != null)) Bad("leaves: one has them, the other not");
+            else if (u.Leaves is { } lp)
             {
-                double d = Math.Abs(cs[k] - swift[k]) / Math.Max(1, Math.Abs(swift[k]));
-                if (d > worst) { worst = d; worstAt = $"{item.GetProperty("name").GetString()} {name}[{k}] {cs[k]:R} vs {swift[k]:R}"; }
-                if (d > 1e-9) bad = true;
+                if (lv.GetProperty("plant").GetInt32() != lp.Plant || lv.GetProperty("scene").GetInt32() != lp.Scene) Bad("leaves: plant or scene");
+                Near("leaves.ms", lp.Ms, lv.GetProperty("ms").GetDouble()); Near("leaves.t", lp.T, lv.GetProperty("t").GetDouble());
+            }
+            var tr = s.GetProperty("tree");
+            if ((tr.ValueKind == System.Text.Json.JsonValueKind.Object) != (u.Tree != null)) Bad("tree: one has it, the other not");
+            else if (u.Tree is { } tk)
+            {
+                Near("tree.offX", tk.OffX, tr.GetProperty("offX").GetDouble()); Near("tree.offY", tk.OffY, tr.GetProperty("offY").GetDouble());
+                Near("tree.k", tk.K, tr.GetProperty("k").GetDouble()); Near("tree.t", tk.T, tr.GetProperty("t").GetDouble());
+                Near("tree.wind", tk.Wind, tr.GetProperty("wind").GetDouble());
             }
         }
+        if (s.GetProperty("mirror").GetBoolean() != u.Mirror) Bad("mirror");
+        if (s.GetProperty("plant").GetString()!.Replace("(", "").Replace(")", "").ToLowerInvariant() != u.Plant.ToString().ToLowerInvariant()) Bad($"plant {u.Plant}");   // Swift: photo(5)
+        foreach (var (pname, cs, swift) in pairs)
+        {
+            if (cs.Length != swift.Length) { Bad($"{pname}: {cs.Length} numbers vs {swift.Length}"); continue; }
+            for (int k = 0; k < cs.Length; k++) Near($"{pname}[{k}]", cs[k], swift[k]);
+        }
         states++;
+        if (name.StartsWith("v14-")) newer++;
         if (bad) off++;
     }
-    Result("the shader's numbers are the Mac's (Swift) for every state", states > 700 && off == 0,
-        $"{states} states (the 119 compared on the screen and 624 more moments, places, walls, motions), {off} differ; largest difference {worst:E1} ({worstAt})");
+    Result("the shader's numbers are the Mac's (Swift) for every state", states > 1000 && newer > 250 && off == 0,
+        $"{states} states (the 119 compared on the screen, 624 more moments, places, walls, motions, and {newer} of the Mac's update 1.4: the four new scenes, " +
+        $"the Tree rustling, the window and the blinds in motion), {off} differ{(off > 0 ? $", first: {firstOff}" : "")}; largest difference {worst:E1} ({worstAt})");
+}
+
+// ---------------- the Mac's update 1.4: the motion's clocks frame by frame, as the Mac's Swift runs them ----------------
+{
+    using var gz = new System.IO.Compression.GZipStream(File.OpenRead(Path.Combine(here, "motion.json.gz")), System.IO.Compression.CompressionMode.Decompress);
+    using var doc = System.Text.Json.JsonDocument.Parse(gz);
+    var lines = new List<string>(); bool allOk = true;
+    foreach (var cl in doc.RootElement.GetProperty("clocks").EnumerateArray())
+    {
+        var name = cl.GetProperty("name").GetString()!;
+        int scene = cl.GetProperty("scene").GetInt32();
+        var st = cl.GetProperty("start");
+        var kind = MotionClock.KindFor(scene);
+        var clock = new MotionClock(kind, st.GetProperty("now").GetDouble(), st.GetProperty("windMs").GetDouble(), st.GetProperty("basePhase").GetDouble());
+        int frames = 0, off = 0, fades = 0; double worst = 0; string first = "";
+        bool Same(Motion cs, System.Text.Json.JsonElement swift, out string what)
+        {
+            what = "";
+            var pairs = new (string n, double a, double b)[]
+            {
+                ("t", cs.T, swift.GetProperty("t").GetDouble()), ("wind", cs.Wind, swift.GetProperty("wind").GetDouble()),
+                ("windLeaves", cs.WindLeaves, swift.GetProperty("windLeaves").GetDouble()), ("windMs", cs.WindMs, swift.GetProperty("windMs").GetDouble()),
+                ("leafT", cs.LeafT, swift.GetProperty("leafT").GetDouble()), ("wt", cs.Wt, swift.GetProperty("wt").GetDouble()),
+            };
+            bool ok = cs.Moving == swift.GetProperty("moving").GetBoolean();
+            if (!ok) what = "moving";
+            foreach (var (n, a, b) in pairs)
+            {
+                double d = Math.Abs(a - b) / Math.Max(1, Math.Abs(b));
+                worst = Math.Max(worst, d);
+                if (d > 1e-9 || double.IsNaN(d)) { ok = false; what = $"{n} {a:R} vs {b:R}"; }
+            }
+            return ok;
+        }
+        foreach (var fr in cl.GetProperty("frames").EnumerateArray())
+        {
+            var got = clock.Frame(fr.GetProperty("now").GetDouble(), fr.GetProperty("windMs").GetDouble(), fr.GetProperty("basePhase").GetDouble());
+            var want = fr.GetProperty("frame");
+            bool ok = Same(got.Motion, want.GetProperty("motion"), out var what);
+            var wf = want.GetProperty("from");
+            if ((wf.ValueKind == System.Text.Json.JsonValueKind.Object) != (got.From != null)) { ok = false; what = "crossfade: one mixes, the other not"; }
+            else if (got.From is { } from)
+            {
+                fades++;
+                if (!Same(from, wf, out var w2)) { ok = false; what = "from: " + w2; }
+                if (Math.Abs(got.Mix - want.GetProperty("mix").GetDouble()) > 1e-9) { ok = false; what = $"mix {got.Mix:R}"; }
+            }
+            frames++;
+            if (!ok) { off++; if (first == "") first = $"frame {frames}: {what}"; }
+        }
+        allOk &= off == 0 && frames > 0;
+        lines.Add($"{name} ({kind}): {frames} frames, {fades} mixed, {off} differ{(first != "" ? " (" + first + ")" : "")}, largest difference {worst:E1}");
+    }
+    Result("motion (the Mac's update 1.4): the clocks of the dapples, the water, the Tree, the window and the blinds are the Mac's frame by frame", allOk, string.Join("; ", lines));
+
+    var tree = doc.RootElement.GetProperty("windTree").EnumerateArray().Select(p => (ms: p[0].GetDouble(), v: p[1].GetDouble())).ToList();
+    var scale = doc.RootElement.GetProperty("scale").EnumerateArray().Select(p => (ms: p[0].GetDouble(), a: p[1].GetDouble(), amp: p[2].GetDouble())).ToList();
+    bool treeOk = tree.All(p => Math.Abs(Wind.Tree(p.ms) - p.v) < 1e-12)
+        && scale.All(p => Math.Abs(WindowLeaves.Scale(p.ms).A - p.a) < 1e-12 && Math.Abs(WindowLeaves.Scale(p.ms).Amp - p.amp) < 1e-12);
+    Result("motion (the Mac's update 1.4): the Tree's rustle from the wind, and the plants' wind scale", treeOk,
+        string.Join(", ", tree.Select(p => $"{p.ms:0.#} m/s → {Wind.Tree(p.ms):0.###}")) + $" (should be {string.Join(", ", tree.Select(p => p.v.ToString("0.###", inv)))})");
+    bool kinds = MotionClock.KindFor(0) == MotionClock.Kind.Leaves && MotionClock.KindFor(3) == MotionClock.Kind.Water && MotionClock.KindFor(7) == MotionClock.Kind.Tree
+        && MotionClock.KindFor(1) == MotionClock.Kind.Window && MotionClock.KindFor(2) == MotionClock.Kind.Window && MotionClock.KindFor(4) == MotionClock.Kind.Leaves;
+    bool moves = Scenes.All.Where(WallLighting.Moves).SequenceEqual(new[] { 0, 1, 2, 3, 7 });
+    bool mirrors = Scenes.All.Where(Scenes.Mirrors).SequenceEqual(new[] { 1, 2, 6, 7, 8 });
+    bool known = Scenes.All.All(Scenes.IsKnown) && !Scenes.IsKnown(5) && !Scenes.IsKnown(9) && !Scenes.IsKnown(-1) && Scenes.Index(8) == 7;
+    Result("scenes (the Mac's update 1.4): which move, which mirror, which numbers are scenes", kinds && moves && mirrors && known,
+        $"move: {string.Join(" ", Scenes.All.Where(WallLighting.Moves))}; mirror with Light from: {string.Join(" ", Scenes.All.Where(Scenes.Mirrors))}; scenes {string.Join(" ", Scenes.All)} (5 free)");
+}
+
+// ---------------- the Mac's update 1.4: the window's plant in the wind (WindowLeaves), as the Mac's Swift poses it ----------------
+{
+    using var gz = new System.IO.Compression.GZipStream(File.OpenRead(Path.Combine(here, "leaves.json.gz")), System.IO.Compression.CompressionMode.Decompress);
+    using var doc = System.Text.Json.JsonDocument.Parse(gz);
+    float[] F(System.Text.Json.JsonElement e) => e.EnumerateArray().Select(x => (float)x.GetDouble()).ToArray();
+    // a float of the Mac's against ours: the same up to a step or two of float (the two systems' sin and cos may differ in the last bit)
+    (int off, double worst) Compare(float[] cs, float[] swift)
+    {
+        if (cs.Length != swift.Length) return (Math.Max(cs.Length, swift.Length), double.PositiveInfinity);
+        int off = 0; double worst = 0;
+        for (int k = 0; k < cs.Length; k++)
+        {
+            double d = Math.Abs((double)cs[k] - swift[k]) / Math.Max(1, Math.Abs((double)swift[k]));
+            if (double.IsNaN(d)) d = double.PositiveInfinity;
+            worst = Math.Max(worst, d);
+            if (d > 1e-4) off++;
+        }
+        return (off, worst);
+    }
+    var root = doc.RootElement;
+    var (pOff, pWorst) = Compare(WindowLeaves.LeafProfile, F(root.GetProperty("profile")));
+    Result("plant in the wind: the leaf's outline is the Mac's", pOff == 0 && WindowLeaves.LeafProfile.Length == 257, $"257 numbers, {pOff} differ, largest difference {pWorst:E1}");
+    foreach (var r in root.GetProperty("rigs").EnumerateArray())
+    {
+        int plant = r.GetProperty("plant").GetInt32();
+        var rig = WindowLeaves.Rig.FromResource(plant);
+        bool shape = rig.W == r.GetProperty("w").GetDouble() && rig.H == r.GetProperty("h").GetDouble() && rig.Count == r.GetProperty("count").GetInt32();
+        int placeOff = 0, layer = 0;
+        foreach (var p in r.GetProperty("places").EnumerateArray()) placeOff += Compare(WindowLeaves.Place(plant, rig, layer++), F(p)).off;
+        int poses = 0, off = 0; double worst = 0; float[]? second = null; (double t, double ms, double seed) secondAt = default;
+        foreach (var p in r.GetProperty("poses").EnumerateArray())
+        {
+            double t = p.GetProperty("t").GetDouble(), ms = p.GetProperty("ms").GetDouble(), seed = p.GetProperty("seed").GetDouble();
+            var got = rig.Pose(t, ms, seed);
+            var (o, w) = Compare(got, F(p.GetProperty("data")));
+            off += o; worst = Math.Max(worst, w); poses++;
+            if (poses == 2) { second = got; secondAt = (t, ms, seed); }
+        }
+        // the memos only spare work: a fresh rig asked once gives the very same numbers as one asked frame after frame
+        var fresh = WindowLeaves.Rig.FromResource(plant).Pose(secondAt.t, secondAt.ms, secondAt.seed);
+        bool memoSame = second != null && fresh.SequenceEqual(second);
+        Result($"plant in the wind: plant {plant}'s pieces are posed as on the Mac", shape && placeOff == 0 && off == 0 && poses > 0 && memoSame,
+            $"{rig.W}×{rig.H} px, {rig.Count} pieces, {poses} poses (moments, winds, layers), {off} numbers differ, largest difference {worst:E1}; the three layers' places {(placeOff == 0 ? "the same" : "DIFFER")}; " +
+            $"a fresh rig {(memoSame ? "gives the same numbers" : "gives OTHER numbers")}");
+    }
+    {
+        var memos = new WindowLeaves.Memos();
+        int poses = 0, off = 0, shapes = 0; double worst = 0; bool memoSame = true;
+        foreach (var p in root.GetProperty("ficus").EnumerateArray())
+        {
+            double t = p.GetProperty("t").GetDouble(), ms = p.GetProperty("ms").GetDouble();
+            var got = WindowLeaves.Ficus(t, ms, memos);
+            var (o, w) = Compare(got, F(p.GetProperty("data")));
+            off += o; worst = Math.Max(worst, w); poses++; shapes = got.Length / WindowLeaves.FicusStride;
+            if (poses == 2) memoSame = WindowLeaves.Ficus(t, ms, new WindowLeaves.Memos()).SequenceEqual(got);
+        }
+        Result("plant in the wind: the drawn ficus is posed as on the Mac", poses > 0 && off == 0 && memoSame,
+            $"{poses} poses of {shapes} strokes and leaves, {off} numbers differ, largest difference {worst:E1}; without the memos {(memoSame ? "the same numbers" : "OTHER numbers")}");
+    }
 }
 
 // ---------------- stage 4: the motion's clock for a day and a week (tools/check-motion.swift, part 2) ----------------
@@ -241,13 +406,14 @@ static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
     ulong seed = 7;
     ulong Next() { seed += 0x9E3779B97F4A7C15; var z = seed; z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9; z = (z ^ (z >> 27)) * 0x94D049BB133111EB; return z ^ (z >> 31); }
     double PhaseAt(double now) => WallLighting.Phase(Math.Floor(now / 300) * 5 % 1440);
-    foreach (var (name, kind) in new[] { ("dapples", MotionClock.Kind.Leaves), ("water", MotionClock.Kind.Water) })
+    // the Tree's rustle and the window's motion (the Mac's update 1.4) are kept as the dapples are
+    foreach (var (name, kind) in new[] { ("dapples'", MotionClock.Kind.Leaves), ("water's", MotionClock.Kind.Water), ("Tree's", MotionClock.Kind.Tree), ("window's", MotionClock.Kind.Window) })
     foreach (var days in new[] { 1.0, 7 })
     {
         seed = 7;
         double wind = 4;
         var clock = new MotionClock(kind, 0, wind, PhaseAt(0));
-        double maxT = 0, maxJump = 0, lastRate = 0; int fades = 0; bool fading = false; float? lastPh = null;
+        double maxT = 0, maxJump = 0, lastRate = 0, maxWt = 0, maxLeafStep = 0, lastLeafT = 0; int fades = 0; bool fading = false; float? lastPh = null;
         long steps = (long)(days * 86400 * 30);
         for (long i = 0; i <= steps; i++)
         {
@@ -255,6 +421,13 @@ static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
             if (i % (3600 * 30) == 0 && i > 0) wind = Next() % 151 / 10.0;
             var fr = clock.Frame(now, wind, PhaseAt(now));
             maxT = Math.Max(maxT, Math.Max(fr.Motion.T, fr.From?.T ?? 0));
+            if (kind == MotionClock.Kind.Window)
+            {
+                // the rain's slow clock stays small; the leaves' own clock runs on with real time, never started again
+                maxWt = Math.Max(maxWt, Math.Max(fr.Motion.Wt, fr.From?.Wt ?? 0));
+                if (i > 0) maxLeafStep = Math.Max(maxLeafStep, Math.Abs(fr.Motion.LeafT - lastLeafT - 1 / 30.0));
+                lastLeafT = fr.Motion.LeafT;
+            }
             if (fr.From != null && !fading) fades++;
             fading = fr.From != null;
             if (kind == MotionClock.Kind.Water)
@@ -274,8 +447,12 @@ static bool Try(Func<bool> f) { try { return f(); } catch { return false; } }
         if (kind == MotionClock.Kind.Water)
             Result($"motion: the water's clock runs {span} without a jump", maxT < 2 * Math.PI / 0.05 + 1 && maxJump < 0.02,
                 $"wind changing every hour (0–15 m/s), uPhase every 5 min: largest uT {maxT:F1} s (never more than one turn), largest step off the expected one {100 * maxJump:F4} % of a step");
+        else if (kind == MotionClock.Kind.Window)
+            Result($"motion: the window's clock runs {span} and stays small", maxT <= MotionClock.LeavesSpan + MotionClock.Crossfade + 1 && fades > 0
+                && maxWt < MotionClock.WtLimit + 1 && maxLeafStep < 1e-6,
+                $"largest uT {maxT:F1} s, {fades} crossfades; the rain's slow clock at most {maxWt:F2} (set back past {MotionClock.WtLimit:F0}); the leaves' clock off its 1/30 s steps by {maxLeafStep:E1} s at most");
         else
-            Result($"motion: the dapples' clock runs {span} and stays small", maxT <= MotionClock.LeavesSpan + MotionClock.Crossfade + 1 && fades > 0,
+            Result($"motion: the {name} clock runs {span} and stays small", maxT <= MotionClock.LeavesSpan + MotionClock.Crossfade + 1 && fades > 0,
                 $"largest uT {maxT:F1} s (a new clock every {MotionClock.LeavesSpan / 60:F0} min and with every new wind); {fades} crossfades");
     }
     // the still picture stays the approved one: Animation off means no motion at all

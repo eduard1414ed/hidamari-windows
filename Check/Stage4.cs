@@ -112,8 +112,11 @@ static partial class Check
 
             // the same states drawn by both, here; Metal's on the Mac (tools/windows-stage4.sh judge)
             // full size for Metal (Direct3D only); half size for the web engine, which draws in software here
+            // Windows 1.1 (the Mac's 1.4): the new scenes and motions as well (tools/windows-1-1.sh on the Mac)
             foreach (var (file, folder, web, scale) in new[] { ("states.json", "still", false, 1.0), ("motion-states.json", "motion", false, 1.0),
-                                                                ("states.json", "still-half", true, 0.5), ("motion-states.json", "motion-half", true, 0.5) })
+                                                                ("1.4-states.json", "still-1.4", false, 1.0), ("1.4-motion-states.json", "motion-1.4", false, 1.0),
+                                                                ("states.json", "still-half", true, 0.5), ("motion-states.json", "motion-half", true, 0.5),
+                                                                ("1.4-states.json", "still-1.4-half", true, 0.5), ("1.4-motion-states.json", "motion-1.4-half", true, 0.5) })
             {
                 var dir = Path.Combine(Stage4Dir, "compare", folder);
                 var sw = Stopwatch.StartNew();

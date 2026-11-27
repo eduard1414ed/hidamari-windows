@@ -30,8 +30,31 @@ sealed class D3DWall : IDisposable
 
     readonly ID3D11VertexShader vs;
     readonly ID3D11PixelShader ps;
+    readonly string source;
     readonly ID3D11Buffer constants;
     readonly ID3D11SamplerState repeat, clamp;
+    /// Mac update 1.4: the Tree's picture repeats mirrored past its edges (MIRRORED_REPEAT); the photo plant's pixels
+    /// for its pieces are read linearly, without smaller copies (the sketch's rigLoad()).
+    readonly ID3D11SamplerState mirror, pieceSampler;
+
+    // ---------- Mac update 1.4 ----------
+    /// The window and the blinds while they move: the shader compiled with WALL_MOVING = 1 (wall.hlsl), made the first
+    /// time it is needed. Still frames never use it, so they are exactly the still code.
+    ID3D11PixelShader? psMoving;
+    /// The Tree's shadow under the current sun: the pass that draws it, its mesh, the last few pictures.
+    ID3D11VertexShader? treeVs; ID3D11PixelShader? treePs; ID3D11BlendState? multiply;
+    ID3D11Buffer? treeGrid, treeIndex; ID3D11ShaderResourceView? treeGridView; int treeIndexCount;
+    ID3D11Buffer? passConstants;
+    readonly List<(TreeMapKey key, ID3D11Texture2D tex, ID3D11RenderTargetView rtv, ID3D11ShaderResourceView view)> treeMaps = new();
+    /// The window's plant in the wind: the passes that draw it, the plants' pieces, the last few pictures.
+    ID3D11VertexShader? rigVs, ficusVs; ID3D11PixelShader? rigPs, ficusPs;
+    ID3D11BlendState[]? darkestIn;
+    readonly Dictionary<int, WindowLeaves.Rig> rigs = new();
+    readonly List<(LeafPose key, ID3D11Texture2D tex, ID3D11RenderTargetView rtv, ID3D11ShaderResourceView view)> posed = new();
+    /// The ficus's wind steps from the last frame (WindowLeaves.Memos): the same picture with far less work.
+    readonly WindowLeaves.Memos ficusMemos = new();
+    ID3D11Buffer? shapes; ID3D11ShaderResourceView? shapesView; int shapesFloats;
+    ID3D11Buffer? profile; ID3D11ShaderResourceView? profileView;
     readonly ID3D11BlendState mixing;
     readonly ID3D11RasterizerState bothSides;
     readonly ID3D11ShaderResourceView blank;
@@ -69,17 +92,23 @@ sealed class D3DWall : IDisposable
             Composition = Vortice.DirectComposition.DComp.DCompositionCreateDevice<Vortice.DirectComposition.IDCompositionDevice>(dxgi);
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        string source;
         using (var s = typeof(D3DWall).Assembly.GetManifestResourceStream("wall.hlsl")!)
         using (var reader = new StreamReader(s)) source = reader.ReadToEnd();
         vs = Device.CreateVertexShader(ShaderCompiler.Compile(source, "wallVertex", "vs_4_0"));
         ps = Device.CreatePixelShader(ShaderCompiler.Compile(source, "wallFragment", "ps_4_0"));
         ShaderMs = sw.ElapsedMilliseconds;
 
-        constants = Device.CreateBuffer(new BufferDescription(16 * 11, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+        constants = Device.CreateBuffer(new BufferDescription(16 * BlockGroups, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
         // the prototype's textures: linear filtering between pixels and between levels (LINEAR_MIPMAP_LINEAR)
         repeat = Device.CreateSamplerState(SamplerDescription.LinearWrap);
         clamp = Device.CreateSamplerState(SamplerDescription.LinearClamp);
+        var md = SamplerDescription.LinearWrap;
+        md.AddressU = md.AddressV = md.AddressW = TextureAddressMode.Mirror;
+        mirror = Device.CreateSamplerState(md);
+        // no smaller copies: the level is held at 0
+        var pd = SamplerDescription.LinearClamp;
+        pd.MaxLOD = 0;
+        pieceSampler = Device.CreateSamplerState(pd);
         // new = frame · a + what is there · (1 − a), a = the blend factor: the second motion of a crossfade (Mac update 1.1)
         mixing = Device.CreateBlendState(new BlendDescription(Blend.BlendFactor, Blend.InverseBlendFactor, Blend.One, Blend.Zero));
         // the prototype's triangle (-1,-1), (3,-1), (-1,3) turns anticlockwise, which Direct3D by default takes for its
@@ -122,12 +151,21 @@ sealed class D3DWall : IDisposable
             if (u.Plant == PlantPicture.Ficus) o.Add("ficus");
             if (u.Plant == PlantPicture.Photo2) o.Add("photo2");
             if (u.Plant == PlantPicture.Photo5) o.Add("photo5");
+            if (u.Plant == PlantPicture.Vase) o.Add("vase");
         }
         if (u.ReadsFrost) o.Add("frost");
+        if (u.ReadsTree) { o.Add("tree"); o.Add("treedepth"); }
+        // Mac update 1.4: the window's plant in the wind is drawn from its pieces ("leaves" keeps the drawn pictures)
+        if (u.ReadsPlant && u.Leaves != null)
+        {
+            o.Add("leaves");
+            int n = u.Plant == PlantPicture.Photo2 ? 2 : u.Plant == PlantPicture.Photo5 ? 5 : 0;
+            if (n != 0) { o.Add($"rigphoto{n}"); o.Add($"rigid{n}"); }
+        }
         return o;
     }
 
-    /// .htex (tools/make-metal-textures.swift on the Mac): "HTX1", width, height, channels (1 or 4), levels as 32-bit
+    /// .htex (tools/make-metal-textures.swift on the Mac): "HTX1", width, height, channels (1, 2 or 4), levels as 32-bit
     /// little-endian numbers, then each level's pixels, rows from the top, level 0 first. Here gzip-packed.
     ID3D11ShaderResourceView Picture(string name)
     {
@@ -152,7 +190,9 @@ sealed class D3DWall : IDisposable
                 offset += size;
                 lw = Math.Max(1, lw / 2); lh = Math.Max(1, lh / 2);
             }
-            var desc = new Texture2DDescription(channels == 1 ? Format.R8_UNorm : Format.R8G8B8A8_UNorm, (uint)w, (uint)h, 1, (uint)levels,
+            // the map of pieces holds numbers, read exactly (Mac update 1.4)
+            var format = name.StartsWith("rigid") ? Format.R8G8_UInt : channels == 1 ? Format.R8_UNorm : channels == 2 ? Format.R8G8_UNorm : Format.R8G8B8A8_UNorm;
+            var desc = new Texture2DDescription(format, (uint)w, (uint)h, 1, (uint)levels,
                 BindFlags.ShaderResource, ResourceUsage.Immutable);
             var tex = Device.CreateTexture2D(desc, subs.AsSpan());
             var view = Device.CreateShaderResourceView(tex);
@@ -183,6 +223,21 @@ sealed class D3DWall : IDisposable
             pictures[name].tex.Dispose();
             pictures.Remove(name);
         }
+        // the Tree's shadow pictures and mesh go with the tree (about 11 MB a picture, 6 MB the mesh), the plant in the
+        // wind with the moving window, the pieces with their photo (Mac update 1.4)
+        if (!keep.Contains("tree"))
+        {
+            foreach (var m in treeMaps) { m.view.Dispose(); m.rtv.Dispose(); m.tex.Dispose(); }
+            treeMaps.Clear();
+            treeGridView?.Dispose(); treeGrid?.Dispose(); treeIndex?.Dispose();
+            treeGridView = null; treeGrid = null; treeIndex = null;
+        }
+        if (!keep.Contains("leaves"))
+        {
+            foreach (var m in posed) { m.view.Dispose(); m.rtv.Dispose(); m.tex.Dispose(); }
+            posed.Clear();
+        }
+        foreach (var n in rigs.Keys.Where(n => !keep.Contains($"rigphoto{n}")).ToList()) rigs.Remove(n);
     }
 
     /// Megabytes of pictures held now (for the journal).
@@ -193,15 +248,268 @@ sealed class D3DWall : IDisposable
             lock (Lock)
             {
                 double sum = 0;
-                foreach (var (n, p) in pictures) { var d = p.tex.Description; sum += d.Width * d.Height * (d.Format == Format.R8_UNorm ? 1 : 4) * 4.0 / 3; }
+                foreach (var (n, p) in pictures) { var d = p.tex.Description; sum += d.Width * d.Height * Bytes(d.Format) * (d.MipLevels > 1 ? 4.0 / 3 : 1); }
+                foreach (var m in treeMaps) { var d = m.tex.Description; sum += d.Width * d.Height * 4.0 / 3; }
+                foreach (var m in posed) { var d = m.tex.Description; sum += d.Width * d.Height * 4 * 4.0 / 3; }
                 return sum / 1048576;
             }
         }
     }
 
+    // ---------- Mac update 1.4: the passes drawn before the frame ----------
+
+    /// The shader with WALL_MOVING = 1 (the window and the blinds in motion), compiled once, when first needed.
+    string MovingSource => "#define WALL_MOVING 1\n" + source;
+
+    ID3D11PixelShader MovingShader()
+    {
+        if (psMoving != null) return psMoving;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        psMoving = Device.CreatePixelShader(ShaderCompiler.Compile(MovingSource, "wallFragment", "ps_4_0"));
+        Log.Write($"d3d: the moving window's shader compiled in {sw.ElapsedMilliseconds} ms");
+        return psMoving;
+    }
+
+    /// 32 bytes for the passes' own uniforms (TreeMapUniforms, RigPlace in wall.hlsl), register b1.
+    unsafe void UploadPass(ReadOnlySpan<float> eight)
+    {
+        passConstants ??= Device.CreateBuffer(new BufferDescription(32, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+        var m = Context.Map(passConstants, MapMode.WriteDiscard);
+        fixed (float* p = eight) Buffer.MemoryCopy(p, (void*)m.DataPointer, 32, eight.Length * 4);
+        Context.Unmap(passConstants, 0);
+    }
+
+    static ShaderResourceViewDescription FloatsView(Format format, int elements) => new()
+    {
+        Format = format,
+        ViewDimension = ShaderResourceViewDimension.Buffer,
+        Buffer = new BufferShaderResourceView { FirstElement = 0, NumElements = (uint)elements },
+    };
+
+    /// An immutable buffer of floats the shaders read as Buffer<float> or Buffer<float2>.
+    unsafe (ID3D11Buffer buf, ID3D11ShaderResourceView view) Floats(float[] data, Format format, int perElement)
+    {
+        fixed (float* p = data)
+        {
+            var buf = Device.CreateBuffer(new BufferDescription((uint)(data.Length * 4), BindFlags.ShaderResource, ResourceUsage.Immutable),
+                new SubresourceData(p));
+            return (buf, Device.CreateShaderResourceView(buf, FloatsView(format, data.Length / perElement)));
+        }
+    }
+
+    /// The instances of the plant's pieces or shapes, rewritten for every draw (Buffer<float> in wall.hlsl).
+    unsafe ID3D11ShaderResourceView Shapes(float[] data)
+    {
+        if (shapes == null || shapesFloats < data.Length)
+        {
+            shapesView?.Dispose(); shapes?.Dispose();
+            shapesFloats = Math.Max(data.Length, 4096);
+            shapes = Device.CreateBuffer(new BufferDescription((uint)(shapesFloats * 4), BindFlags.ShaderResource, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+            shapesView = Device.CreateShaderResourceView(shapes, FloatsView(Format.R32_Float, shapesFloats));
+        }
+        var m = Context.Map(shapes, MapMode.WriteDiscard);
+        fixed (float* p = data) Buffer.MemoryCopy(p, (void*)m.DataPointer, shapesFloats * 4L, data.Length * 4L);
+        Context.Unmap(shapes, 0);
+        return shapesView!;
+    }
+
+    /// A picture the passes draw into and the frame then reads, with all its smaller copies (made after drawing).
+    (ID3D11Texture2D tex, ID3D11RenderTargetView rtv, ID3D11ShaderResourceView view) PassTarget(Format format, int w, int h)
+    {
+        var tex = Device.CreateTexture2D(new Texture2DDescription(format, (uint)w, (uint)h, 1, 0,
+            BindFlags.RenderTarget | BindFlags.ShaderResource, ResourceUsage.Default, CpuAccessFlags.None, 1, 0, ResourceOptionFlags.GenerateMips));
+        return (tex, Device.CreateRenderTargetView(tex), Device.CreateShaderResourceView(tex));
+    }
+
+    /// Nothing a pass draws into may still be bound for reading (Direct3D would refuse the target).
+    void UnbindPictures()
+    {
+        var none = new ID3D11ShaderResourceView?[6];
+        Context.PSSetShaderResources(0, none!);
+        Context.VSSetShaderResources(0, new ID3D11ShaderResourceView?[2]!);
+    }
+
+    /// The sketch's picture of the Tree's shadow: the photo with a 240 px margin, twice as fine (MetalWall.treeMapSize).
+    const int TreeMapW = 2 * (970 + 2 * 240), TreeMapH = 2 * (900 + 2 * 240);
+    /// How many shadow pictures and posed plants are kept: one per screen shape, and two while two motions are crossfaded.
+    const int Kept = 3;
+
+    /// The mesh of the sketch's initTree3D(): a grid over the whole picture, a point every 3 photo pixels; drawn as
+    /// strips, one per row, with the same triangles as the sketch's (a, b, c), (b, d, c) (MetalWall.treeMeshLocked()).
+    unsafe void TreeMesh()
+    {
+        if (treeGrid != null) return;
+        int tw = 970 + 2 * 240, th = 900 + 2 * 240, step = 3;
+        int nx = (tw + step - 1) / step + 1, ny = (th + step - 1) / step + 1;
+        var uv = new float[nx * ny * 2];
+        for (int j = 0; j < ny; j++)
+            for (int i = 0; i < nx; i++)
+            {
+                uv[(j * nx + i) * 2] = (float)i / (float)(nx - 1);
+                uv[(j * nx + i) * 2 + 1] = (float)j / (float)(ny - 1);
+            }
+        var idx = new List<uint>((ny - 1) * (2 * nx + 1));
+        for (int j = 0; j < ny - 1; j++)
+        {
+            for (int i = 0; i < nx; i++) { idx.Add((uint)(j * nx + i)); idx.Add((uint)((j + 1) * nx + i)); }
+            idx.Add(uint.MaxValue);                                   // a new strip for the next row
+        }
+        (treeGrid, treeGridView) = Floats(uv, Format.R32G32_Float, 2);
+        var ia = idx.ToArray();
+        fixed (uint* p = ia)
+            treeIndex = Device.CreateBuffer(new BufferDescription((uint)(ia.Length * 4), BindFlags.IndexBuffer, ResourceUsage.Immutable), new SubresourceData(p));
+        treeIndexCount = ia.Length;
+    }
+
+    /// The Tree's shadow picture for `key`, drawn first if it is not one of the last few (MetalWall.treeMap()).
+    ID3D11ShaderResourceView TreeMap(TreeMapKey key)
+    {
+        int i = treeMaps.FindIndex(m => m.key == key);
+        if (i >= 0) { var m = treeMaps[i]; treeMaps.RemoveAt(i); treeMaps.Add(m); return m.view; }
+        var layers = Picture("tree"); var depth = Picture("treedepth");
+        if (treeVs == null)
+        {
+            treeVs = Device.CreateVertexShader(ShaderCompiler.Compile(source, "treeMapVertex", "vs_4_0"));
+            treePs = Device.CreatePixelShader(ShaderCompiler.Compile(source, "treeMapFragment", "ps_4_0"));
+            // shadows multiply: blendFunc(ZERO, SRC_COLOR)
+            multiply ??= Device.CreateBlendState(new BlendDescription(Blend.Zero, Blend.SourceColor, Blend.Zero, Blend.SourceAlpha));
+        }
+        TreeMesh();
+        ID3D11Texture2D tex; ID3D11RenderTargetView rtv; ID3D11ShaderResourceView view;
+        if (treeMaps.Count >= Kept) { (_, tex, rtv, view) = treeMaps[0]; treeMaps.RemoveAt(0); }
+        else (tex, rtv, view) = PassTarget(Format.R8_UNorm, TreeMapW, TreeMapH);
+
+        var c = Context;
+        UnbindPictures();
+        c.OMSetRenderTargets(rtv);
+        c.ClearRenderTargetView(rtv, new Color4(1, 1, 1, 1));
+        c.RSSetViewport(new Viewport(0, 0, TreeMapW, TreeMapH));
+        c.RSSetState(bothSides);
+        c.IASetInputLayout(null);
+        c.IASetPrimitiveTopology(PrimitiveTopology.TriangleStrip);
+        c.IASetIndexBuffer(treeIndex, Format.R32_UInt, 0);
+        c.VSSetShader(treeVs);
+        c.PSSetShader(treePs);
+        c.VSSetShaderResource(0, treeGridView);
+        c.VSSetShaderResource(1, depth);
+        c.PSSetShaderResource(0, layers);
+        c.PSSetSampler(0, mirror);
+        c.OMSetBlendState(multiply);
+        double tw = 970 + 2 * 240, th = 900 + 2 * 240;
+        for (int which = 0; which <= 1; which++)
+        {
+            // a point d metres from the wall: its shadow moves by d times the sun's slant (away from the sun)
+            UploadPass(new[] { (float)(-key.OffX / (key.K * tw)), (float)(key.OffY / (key.K * th)), (float)(1 / tw), (float)(1 / th),
+                               (float)key.T, (float)key.Wind, which, 0f });
+            c.VSSetConstantBuffer(1, passConstants);
+            c.PSSetConstantBuffer(1, passConstants);
+            c.DrawIndexed((uint)treeIndexCount, 0, 0);
+        }
+        c.OMSetBlendState(null);
+        c.UnsetRenderTargets();
+        c.VSSetShaderResources(0, new ID3D11ShaderResourceView?[2]!);
+        c.GenerateMips(view);
+        treeMaps.Add((key, tex, rtv, view));
+        return view;
+    }
+
+    WindowLeaves.Rig Rig(int n)
+    {
+        if (rigs.TryGetValue(n, out var r)) return r;
+        using var s = typeof(D3DWall).Assembly.GetManifestResourceStream($"textures/rig{n}.json") ?? throw new FileNotFoundException($"rig{n}");
+        using var reader = new StreamReader(s);
+        return rigs[n] = WindowLeaves.Rig.FromJson(reader.ReadToEnd());
+    }
+
+    /// The window's plant posed for `key`, drawn first if it is not one of the last few; null when this plant does not
+    /// move (it then stays the still picture). MetalWall.posedPlant().
+    ID3D11ShaderResourceView? PosedPlant(LeafPose key, PlantPicture plant)
+    {
+        int n = plant == PlantPicture.Photo2 ? 2 : plant == PlantPicture.Photo5 ? 5 : 0;
+        if (n == 0 && plant != PlantPicture.Ficus) return null;
+        int i = posed.FindIndex(m => m.key == key);
+        if (i >= 0) { var m = posed[i]; posed.RemoveAt(i); posed.Add(m); return m.view; }
+        ID3D11ShaderResourceView? photo = null, ids = null;
+        if (n != 0) { photo = Picture($"rigphoto{n}"); ids = Picture($"rigid{n}"); }
+        if (ficusVs == null)
+        {
+            var moving = MovingSource;
+            rigVs = Device.CreateVertexShader(ShaderCompiler.Compile(moving, "rigVertex", "vs_4_0"));
+            rigPs = Device.CreatePixelShader(ShaderCompiler.Compile(moving, "rigFragment", "ps_4_0"));
+            ficusVs = Device.CreateVertexShader(ShaderCompiler.Compile(moving, "ficusVertex", "vs_4_0"));
+            ficusPs = Device.CreatePixelShader(ShaderCompiler.Compile(moving, "ficusFragment", "ps_4_0"));
+            // the pieces: one depth layer per channel, darkest wins (blendEquation(MIN), colorMask per layer)
+            darkestIn = new[] { ColorWriteEnable.Red, ColorWriteEnable.Green, ColorWriteEnable.Blue }.Select(mask =>
+            {
+                var d = new BlendDescription(Blend.One, Blend.One, Blend.One, Blend.One);
+                d.RenderTarget[0].BlendOperation = BlendOperation.Min;
+                d.RenderTarget[0].BlendOperationAlpha = BlendOperation.Min;
+                d.RenderTarget[0].RenderTargetWriteMask = mask;
+                return Device.CreateBlendState(d);
+            }).ToArray();
+            // the ficus: every shape multiplies what is there (the canvas's 'multiply' over white)
+            multiply ??= Device.CreateBlendState(new BlendDescription(Blend.Zero, Blend.SourceColor, Blend.Zero, Blend.SourceAlpha));
+            (profile, profileView) = Floats(WindowLeaves.LeafProfile, Format.R32_Float, 1);
+        }
+        ID3D11Texture2D tex; ID3D11RenderTargetView rtv; ID3D11ShaderResourceView view;
+        if (posed.Count >= Kept) { (_, tex, rtv, view) = posed[0]; posed.RemoveAt(0); }
+        else (tex, rtv, view) = PassTarget(Format.R8G8B8A8_UNorm, 1024, 1024);
+
+        var c = Context;
+        UnbindPictures();
+        c.OMSetRenderTargets(rtv);
+        c.ClearRenderTargetView(rtv, new Color4(1, 1, 1, 1));
+        c.RSSetViewport(new Viewport(0, 0, 1024, 1024));
+        c.RSSetState(bothSides);
+        c.IASetInputLayout(null);
+        c.IASetPrimitiveTopology(PrimitiveTopology.TriangleStrip);
+        if (n != 0)
+        {
+            var rig = Rig(n);
+            c.VSSetShader(rigVs);
+            c.PSSetShader(rigPs);
+            c.PSSetShaderResource(0, photo);
+            c.PSSetShaderResource(1, ids);
+            c.PSSetSampler(0, pieceSampler);
+            int layerCount = n == 2 ? WindowLeaves.Plant2Layers : 3;
+            for (int layer = 0; layer < layerCount; layer++)
+            {
+                var inst = rig.Pose(key.T + WindowLeaves.Layers[layer].Off, key.Ms, 31 * layer + 3);
+                var place = WindowLeaves.Place(n, rig, layer);
+                UploadPass(new[] { place[0], place[1], place[2], place[3], (float)rig.W, (float)rig.H, 0f, 0f });
+                c.VSSetShaderResource(0, Shapes(inst));
+                c.VSSetConstantBuffer(1, passConstants);
+                c.PSSetConstantBuffer(1, passConstants);
+                c.OMSetBlendState(darkestIn![layer]);
+                c.DrawInstanced(4, (uint)rig.Count, 0, 0);
+            }
+        }
+        else
+        {
+            var all = WindowLeaves.Ficus(key.T, key.Ms, ficusMemos);
+            c.VSSetShader(ficusVs);
+            c.PSSetShader(ficusPs);
+            c.VSSetShaderResource(0, Shapes(all));
+            c.PSSetShaderResource(0, profileView);
+            c.OMSetBlendState(multiply);
+            c.DrawInstanced(4, (uint)(all.Length / WindowLeaves.FicusStride), 0, 0);
+        }
+        c.OMSetBlendState(null);
+        c.UnsetRenderTargets();
+        c.VSSetShaderResources(0, new ID3D11ShaderResourceView?[2]!);
+        c.GenerateMips(view);
+        posed.Add((key, tex, rtv, view));
+        return view;
+    }
+
+    static int Bytes(Format f) => f == Format.R8_UNorm ? 1 : f is Format.R8G8_UNorm or Format.R8G8_UInt ? 2 : 4;
+
     // ---------- drawing ----------
 
-    /// The uniform block of wall.hlsl (WallUniforms): eleven groups of four 32-bit floats.
+    /// Groups of four floats in wall.hlsl's WallUniforms (Mac update 1.4: twelve, the new scenes' numbers last).
+    const int BlockGroups = 12;
+
+    /// The uniform block of wall.hlsl (WallUniforms): twelve groups of four 32-bit floats.
     static float[] Block(WallUniformValues u, int ox, int oy)
     {
         float F(double x) => (float)x;
@@ -218,13 +526,14 @@ sealed class D3DWall : IDisposable
             F(u.Amb[0]), F(u.Amb[1]), F(u.Amb[2]), u.Layers,
             u.Weather, F(u.T), F(u.Wind), F(u.WindLeaves),
             u.Mirror ? 1 : 0, ox, oy, 0,
+            F(u.PhaseDay), F(u.GlassNight), F(u.Rainbow), 0,
         };
     }
 
     unsafe void Upload(float[] block)
     {
         var m = Context.Map(constants, MapMode.WriteDiscard);
-        fixed (float* p = block) Buffer.MemoryCopy(p, (void*)m.DataPointer, 16 * 11, block.Length * 4);
+        fixed (float* p = block) Buffer.MemoryCopy(p, (void*)m.DataPointer, 16 * BlockGroups, block.Length * 4);
         Context.Unmap(constants, 0);
     }
 
@@ -237,11 +546,37 @@ sealed class D3DWall : IDisposable
         if (mixingNow) names.UnionWith(PictureNames(from!));
         var crown0 = names.Contains("crown0") ? Picture("crown0") : blank;
         var crown1 = names.Contains("crown1") ? Picture("crown1") : blank;
-        var plant = blank;
-        if (u.ReadsPlant && u.Plant == PlantPicture.Photo2) plant = Picture("photo2");
-        if (u.ReadsPlant && u.Plant == PlantPicture.Photo5) plant = Picture("photo5");
-        if (u.ReadsPlant && u.Plant == PlantPicture.Ficus) plant = Picture("ficus");
+        // the plant's picture: the still one, or (Mac update 1.4) the plant posed in the wind, for each motion of a crossfade
+        ID3D11ShaderResourceView PlantView(WallUniformValues v)
+        {
+            if (!v.ReadsPlant) return blank;
+            // a plant whose pieces cannot be read stays still rather than leaving the frame undrawn
+            if (v.Leaves is LeafPose key)
+            {
+                try { if (PosedPlant(key, v.Plant) is { } t) return t; }
+                catch (Exception e) when (e is not SharpGen.Runtime.SharpGenException) { Log.Write($"d3d: the plant in the wind could not be drawn: {e.Message}"); }
+            }
+            return v.Plant switch
+            {
+                PlantPicture.Photo2 => Picture("photo2"),
+                PlantPicture.Photo5 => Picture("photo5"),
+                PlantPicture.Ficus => Picture("ficus"),
+                PlantPicture.Vase => Picture("vase"),
+                _ => blank,
+            };
+        }
+        var fromPlant = mixingNow ? PlantView(from!) : blank;
+        var plant = PlantView(u);
         var frost = names.Contains("frost") ? Picture("frost") : blank;
+        // the Tree: its shadow under this sun is drawn first (and the old motion's too, while two are crossfaded)
+        var tree = u.ReadsTree ? Picture("tree") : blank;
+        ID3D11ShaderResourceView treeMap = blank, fromTreeMap = blank;
+        if (u.ReadsTree && u.Tree is TreeMapKey tk)
+        {
+            if (mixingNow && from!.Tree is TreeMapKey fk) fromTreeMap = TreeMap(fk);
+            treeMap = TreeMap(tk);
+        }
+        var first = mixingNow ? from! : u;
 
         var c = Context;
         c.OMSetRenderTargets(target);
@@ -250,20 +585,26 @@ sealed class D3DWall : IDisposable
         c.IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
         c.IASetInputLayout(null);
         c.VSSetShader(vs);
-        c.PSSetShader(ps);
+        c.PSSetShader(first.Moving ? MovingShader() : ps);
         c.PSSetConstantBuffer(0, constants);
         c.PSSetShaderResource(0, crown0);
         c.PSSetShaderResource(1, crown1);
-        c.PSSetShaderResource(2, plant);
+        c.PSSetShaderResource(2, mixingNow ? fromPlant : plant);
         c.PSSetShaderResource(3, frost);
+        c.PSSetShaderResource(4, tree);
+        c.PSSetShaderResource(5, mixingNow ? fromTreeMap : treeMap);
         c.PSSetSampler(0, repeat);
         c.PSSetSampler(1, clamp);
+        c.PSSetSampler(2, mirror);
         c.OMSetBlendState(null);
-        Upload(Block(mixingNow ? from! : u, ox, oy));
+        Upload(Block(first, ox, oy));
         c.Draw(3, 0);
         if (mixingNow)
         {
             float a = (float)Math.Max(0, mix);
+            c.PSSetShader(u.Moving ? MovingShader() : ps);
+            c.PSSetShaderResource(2, plant);
+            c.PSSetShaderResource(5, treeMap);
             c.OMSetBlendState(mixing, new Color4(a, a, a, a));
             Upload(Block(u, ox, oy));
             c.Draw(3, 0);
@@ -359,6 +700,13 @@ sealed class D3DWall : IDisposable
             pictures.Clear();
             blank.Dispose(); blankTexture.Dispose();
             mixing.Dispose(); bothSides.Dispose(); repeat.Dispose(); clamp.Dispose(); constants.Dispose(); vs.Dispose(); ps.Dispose();
+            foreach (var m in treeMaps) { m.view.Dispose(); m.rtv.Dispose(); m.tex.Dispose(); }
+            foreach (var m in posed) { m.view.Dispose(); m.rtv.Dispose(); m.tex.Dispose(); }
+            treeMaps.Clear(); posed.Clear();
+            foreach (var d in new IDisposable?[] { mirror, pieceSampler, psMoving, treeVs, treePs, multiply, treeGridView, treeGrid, treeIndex,
+                                                    passConstants, rigVs, rigPs, ficusVs, ficusPs, shapesView, shapes, profileView, profile })
+                d?.Dispose();
+            foreach (var b in darkestIn ?? Array.Empty<ID3D11BlendState>()) b.Dispose();
             try { Composition.Dispose(); } catch { }
             try { Context.ClearState(); Context.Flush(); } catch { }
             Context.Dispose();

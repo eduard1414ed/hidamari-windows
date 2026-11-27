@@ -23,6 +23,9 @@ sealed class App : ApplicationContext
     readonly Settings settings;
     readonly bool firstLaunch;
     readonly Card card;
+    /// The support window after an update (the Mac's update 1.4).
+    readonly SupportWindow support;
+    readonly System.Windows.Forms.Timer supportSoon = new() { Interval = 1500 };
     readonly Surroundings around;
     readonly System.Windows.Forms.Timer saveSoon = new() { Interval = 400 };
     readonly System.Windows.Forms.Timer thumbsSoon = new() { Interval = 500 };
@@ -83,7 +86,9 @@ sealed class App : ApplicationContext
         messages = new Messages(this);
         tray = new Tray(messages.Handle, () => Quit("Quit in the tray menu"), OnSelect);
         card = new Card(engine.SharedEnvironment, CardState, tray.Rect, checkFolder != null);
-        engine.SharedWith = () => card.EngineRunning;
+        support = new SupportWindow(engine.SharedEnvironment, SupportState, checkFolder != null);
+        support.Layout += SaveSupportLayout;
+        engine.SharedWith = () => card.EngineRunning || support.EngineRunning;
         card.Chosen += (type, m) => { try { OnChosen(type, m); } catch (Exception e) { Log.Write($"error: card {type}: {e}"); } };
         card.Opened += () => { wakeWanted = true; Kick(); around.OnCardOpened(); _ = LoginLook("the card opened"); };
         card.NoRuntime += why => ui.Post(_ => NoWebView2(why), null);
@@ -130,6 +135,13 @@ sealed class App : ApplicationContext
             placeLater.Start();
         }
         else ui.Post(_ => StartAround("start"), null);
+        // once after every update, 1.5 s after the start, the support window (the Mac's update 1.4); never at the very
+        // first installation, which only remembers the version
+        if (SupportPrompt.ShowNow(settings, firstLaunch, checkFolder != null))
+        {
+            supportSoon.Tick += (_, _) => { supportSoon.Stop(); if (!stopping) _ = support.Show("after an update"); };
+            supportSoon.Start();
+        }
     }
 
     /// Direct3D unless the web engine was asked for; the web engine when Direct3D cannot draw on this machine.
@@ -582,8 +594,18 @@ sealed class App : ApplicationContext
             ["live"] = settings.LiveWeather,
             ["animation"] = settings.Animates,
             ["ownThumbs"] = ownThumbs,
+            // Settings 1.4: "Ver 1.1" at the bottom (the assembly's version, which the package build sets, as the Mac shows it)
+            ["version"] = Program.ShortVersion,
         };
     }
+
+    /// What the support window shows: the sky at the chosen place now, and the version.
+    Dictionary<string, object?> SupportState() => new()
+    {
+        ["now"] = (double)Now().ToUnixTimeMilliseconds(),
+        ["place"] = settings.Place.ForPage(),
+        ["version"] = Program.ShortVersion,
+    };
 
     /// Something was chosen on the card: it goes into the settings, on the wall at once, and into the journal.
     void OnChosen(string type, JsonElement m)
@@ -656,7 +678,8 @@ sealed class App : ApplicationContext
             case "openLink":
             {
                 var to = m.GetProperty("to").GetString();
-                var url = to == "geonames" ? "https://www.geonames.org/" : "https://api.met.no/doc/License";
+                // Made by Ed Tsarionov (settings 1.4): Ed's site
+                var url = to == "author" ? Links.Author : to == "geonames" ? "https://www.geonames.org/" : "https://api.met.no/doc/License";
                 Log.Write($"card: {url} opened");
                 try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
                 catch (Exception e) { Log.Write($"card: could not open {url} ({e.Message})"); }
@@ -697,9 +720,10 @@ sealed class App : ApplicationContext
             case "scene":
             {
                 int sc = v.GetInt32();
-                if (sc is < 0 or > 3 || sc == settings.Scene) return;
+                // the scene's number (Settings.SceneNumbers: 0–4, 6–8), not its place in the film
+                if (Hidamari.Settings.SceneIndex(sc) < 0 || sc == settings.Scene) return;
                 settings.Scene = sc;
-                Changed($"scene {Strings.Scenes[sc]}");
+                Changed($"scene {Hidamari.Settings.SceneName(sc)}");
                 WantDraw("a scene was chosen");
                 // the motion stops (or starts) now, not after the new scene's frame or the next look
                 UpdateMotion("a scene was chosen");
@@ -880,7 +904,8 @@ sealed class App : ApplicationContext
 
     // ---------- the own wall's small pictures ----------
 
-    static readonly string[] ThumbNames = { "dapples", "blinds", "water", "window-0", "window-2", "window-5", "plant-0", "plant-2", "plant-5" };
+    static readonly string[] ThumbNames = { "dapples", "blinds", "water", "prism", "moon-gate", "tree", "glass-blocks",
+        "window-0", "window-2", "window-5", "plant-0", "plant-2", "plant-5" };
 
     /// The own wall was started from approved wall `from`: until its own pictures are drawn, the card shows that
     /// wall's pictures (OwnWallThumbs on the Mac does the same).
@@ -936,6 +961,24 @@ sealed class App : ApplicationContext
         catch (Exception e) { Log.Write($"check: could not save the card's layout ({e.Message})"); }
     }
 
+    /// Check mode: where the support window's card and buttons are (support-layout.json, like card-layout.json).
+    void SaveSupportLayout(JsonElement m)
+    {
+        if (checkFolder == null) return;
+        try
+        {
+            var w = support.WindowRect;
+            File.WriteAllText(Path.Combine(checkFolder, "support-layout.json"), JsonSerializer.Serialize(new
+            {
+                window = new { w.X, w.Y, w.Width, w.Height },
+                scale = support.Scale,
+                open = support.IsOpen,
+                rects = m.GetProperty("rects"),
+            }, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception e) { Log.Write($"check: could not save the support window's layout ({e.Message})"); }
+    }
+
     /// The check on GitHub asks for something through command.json: open or close the card, the clock, the glass.
     void CheckCommand()
     {
@@ -952,6 +995,11 @@ sealed class App : ApplicationContext
             {
                 case "open": _ = card.Open("check"); break;
                 case "close": card.Close("check"); break;
+                // the support window on demand: { "do": "support", "show": true } shows it, false closes it
+                case "support":
+                    if (!c.TryGetProperty("show", out var ss) || ss.GetBoolean()) _ = support.Show("check");
+                    else support.Close("check");
+                    break;
                 case "clock":
                     clockShift = TimeSpan.FromMilliseconds(c.GetProperty("ms").GetDouble() - DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                     shownMoment = null;
@@ -1034,6 +1082,7 @@ sealed class App : ApplicationContext
                 id, reply, open = card.IsOpen, lastOpenMs = card.LastOpenMs, asked = around.Asked, located = around.Located?.ToString(), place = settings.Place.ForPage(), placeMode = settings.PlaceMode,
                 renderer = renderer.Name, rendererDescribe = renderer.Describe, recovered = d3d?.Recovered ?? 0, animates = settings.Animates,
                 motion = animator?.Status(), picturesMB = d3d?.Gpu.PicturesMB ?? 0,
+                supportOpen = support.IsOpen, supportShownVersion = settings.SupportShownVersion,
             }));
         }
         catch { }
@@ -1109,7 +1158,7 @@ sealed class App : ApplicationContext
             var input = Wall.Input(page) with { Width = w, Height = h };
             var u0 = WallLighting.Uniforms(input);
             double phase = WallLighting.Phase(input.Minutes);
-            var clock = new MotionClock(input.Scene == 3 ? MotionClock.Kind.Water : MotionClock.Kind.Leaves, 0, WindAt(0), phase);
+            var clock = new MotionClock(MotionClock.KindFor(input.Scene), 0, WindAt(0), phase);
             int k = 0;
             for (; k / (double)fps < start; k++) clock.Frame(k / (double)fps, WindAt(k / (double)fps), phase);
             int total = (int)Math.Round(seconds * fps);
@@ -1264,10 +1313,11 @@ sealed class App : ApplicationContext
         Log.Write($"stopping: {why}");
         try { measure.Write("at quit"); } catch { }
         stopping = true;
-        foreach (var t in new[] { tick, screensSoon, lookSoon, retry, measureTimer, firstMeasure, thumbsSoon, motionLook }) t.Stop();
+        foreach (var t in new[] { tick, screensSoon, lookSoon, retry, measureTimer, firstMeasure, thumbsSoon, motionLook, supportSoon }) t.Stop();
         try { animator?.End(); } catch (Exception e) { Log.Write($"animation: {e.Message}"); }
         if (saveSoon.Enabled) { saveSoon.Stop(); settings.Save(); }
         foreach (var w in waits) w.Unregister(null);
+        try { support.Close("the app quits"); } catch (Exception e) { Log.Write($"support window: {e.Message}"); }
         try { card.Close("the app quits"); card.Dispose(); } catch (Exception e) { Log.Write($"card: {e.Message}"); }
         covers.Dispose();
         around.Dispose();

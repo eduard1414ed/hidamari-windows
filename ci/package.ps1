@@ -2,12 +2,12 @@
 # emulation), and the bundle of both, Hidamari_<version>.msixbundle, which is what goes to Partner Center.
 # Not signed: the Store signs it. The checks sign their own copy with a certificate made for the run (ci/sign-test.ps1).
 #
-#   ci/package.ps1 -Version 1.0.0 -Out out/package
+#   ci/package.ps1 -Version 1.1.0 -Out out/package
 #
 # The tools (MakeAppx, MakePri, SignTool) come from Microsoft's NuGet package Microsoft.Windows.SDK.BuildTools, the
 # same on every machine; nothing is installed into Windows.
 param(
-  [string]$Version = '1.0.0',
+  [string]$Version = '1.1.0',
   [string]$Out = 'out/package',
   [string[]]$Arch = @('x64', 'arm64')
 )
