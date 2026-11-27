@@ -290,13 +290,13 @@ static partial class Check
                 Result(g, "an old settings file without Animation: off, the wall still", !m0.GetProperty("animates").GetBoolean() && !Running(m0) && run.Since_("animation: running").Count == 0,
                     $"animates {m0.GetProperty("animates")}, {Reason(m0)}");
 
-                // the card: the row at the dapples and the water only; its switch
+                // the card: the row at the scenes that move (since 1.1: the dapples, the window, the blinds, the water, the Tree); its switch
                 var (l, _) = OpenByIcon(run);
                 if (l == null) { Result(g, "the card", false, "the card did not open"); return; }
                 double Row(Layout x) => x.Checked.TryGetProperty("animationRow", out var v) ? v.GetDouble() : -1;
                 var rows = new List<string>();
                 bool rowsOk = true;
-                foreach (var (sc, want) in new[] { (0, true), (1, false), (2, false), (3, true), (0, true) })
+                foreach (var (sc, want) in new[] { (0, true), (1, true), (2, true), (3, true), (4, false), (6, false), (7, true), (8, false), (0, true) })
                 {
                     var before = DateTime.UtcNow;
                     Command(run, new { @do = "choose", type = "set", change = new Dictionary<string, object> { ["scene"] = sc } });
@@ -307,7 +307,7 @@ static partial class Check
                     l = now;
                 }
                 Pictures.Shot(Path.Combine("stage4", "card-animation-row.png"));
-                Result(g, "the Animation row only at the dapples and the water, the card's height follows", rowsOk, $"row height by scene (points): {string.Join(", ", rows)}");
+                Result(g, "the Animation row only at the scenes that move (the dapples, the window, the blinds, the water, the Tree), the card's height follows", rowsOk, $"row height by scene (points): {string.Join(", ", rows)}");
                 var on = ClickCard(run, l, "animation", until: x => x.Is("animation"));
                 var started = run.Next("animation: running", TimeSpan.FromSeconds(20));
                 Thread.Sleep(1500);
@@ -392,7 +392,7 @@ static partial class Check
                 Pause("sleep", () => Command(run, new { @do = "pretend", what = "sleep" }), () => Command(run, new { @do = "pretend", what = "wake" }));
                 Pause("another user", () => Command(run, new { @do = "pretend", what = "away" }), () => Command(run, new { @do = "pretend", what = "back" }));
                 Pause("Remote Desktop", () => Command(run, new { @do = "remote", pretend = true }), () => Command(run, new { @do = "remote", pretend = false }));
-                Pause("the window scene", () => Command(run, new { @do = "choose", type = "set", change = new { scene = 1 } }),
+                Pause("the prism scene (still)", () => Command(run, new { @do = "choose", type = "set", change = new { scene = 4 } }),
                                           () => Command(run, new { @do = "choose", type = "set", change = new { scene = 0 } }));
                 Result(g, "not one frame while the motion must not run", allZero, string.Join("; ", pauses));
                 Result(g, "the motion goes on afterwards without a jump", noJump, "the motion's clock goes on from where it stopped (the switch starts it anew, fading in)");

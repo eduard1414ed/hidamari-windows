@@ -508,7 +508,7 @@ static partial class Check
         Pictures.Crop(Pictures.Shot(null), l.Window, "card/picker-real.png");
         Press("pad", "the own wall was changed", s => I(s, "wall") == -1 && Math.Abs(D(s.GetProperty("custom"), "x") - 0.25) < 0.08 && Math.Abs(D(s.GetProperty("custom"), "y") - 0.3) < 0.08,
             "own-pad", "a press on the field: an own wall of that colour", 0.25, 0.3);
-        var thumbs = run.Next("thumbs: 9 pictures of the own wall drawn", TimeSpan.FromSeconds(300));
+        var thumbs = run.Next("thumbs: 13 pictures of the own wall drawn", TimeSpan.FromSeconds(300));
         Result(o, "its small pictures are drawn half a second after the hand lets go", thumbs != null, thumbs ?? "none within 300 s");
         facts["ownThumbsMs"] = thumbs != null ? Run.Number(thumbs, "drawn in ") : null;
         // the small pictures take the wall's engine for a while (36 s on GitHub's machines without a graphics card,
@@ -629,7 +629,7 @@ static partial class Check
             $"journal: {said ?? "nothing"}; settings.json: {(saved.Contains("\"windowOnRight\": true") ? "windowOnRight true" : "no windowOnRight true")}");
         // each scene on the wall: only the window and the blinds are mirrored
         var wrong = new List<string>();
-        foreach (var sc in new[] { 1, 2, 0, 3 })
+        foreach (var sc in new[] { 1, 2, 6, 7, 8, 0, 3, 4 })
         {
             run.Mark();
             var stateFile = Path.Combine(run.Folder, "canvas", "state-DISPLAY1.json");
@@ -642,12 +642,12 @@ static partial class Check
             Thread.Sleep(300);
             var st = WallState(run)?.GetProperty("state");
             bool mirror = st != null && st.Value.TryGetProperty("mirror", out var mv) && mv.ValueKind == JsonValueKind.True;
-            bool want = sc is 1 or 2;
+            bool want = sc is 1 or 2 or 6 or 7 or 8;   // Scenes.Mirrors (the Mac's update 1.4)
             if (st == null || st.Value.GetProperty("scene").GetInt32() != sc || mirror != want) wrong.Add($"scene {sc}: mirror {mirror} ({frame ?? "no frame"})");
             KeepForMac(run, $"light-right-scene{sc}");
         }
-        Result(g, "Right mirrors the window and the blinds, not the dapples and the water", wrong.Count == 0,
-            wrong.Count == 0 ? "window and blinds mirrored, dapples and water as they were (frames kept for the Mac)" : string.Join("; ", wrong));
+        Result(g, "Right mirrors the window, the blinds, Moon Gate, the Tree and the glass blocks, not the dapples, the water and the prism", wrong.Count == 0,
+            wrong.Count == 0 ? "window, blinds, Moon Gate, Tree and glass blocks mirrored; dapples, water and prism as they were (frames kept for the Mac)" : string.Join("; ", wrong));
         // the small pictures, seen on the card
         Command(run, new { @do = "choose", type = "set", change = new Dictionary<string, object> { ["scene"] = 1 } });
         run.Next("frame ", TimeSpan.FromSeconds(120));
@@ -733,6 +733,9 @@ static partial class Check
             }
             finally { Quit(part); }
         }
+
+        // the support window after an update (Windows 1.1)
+        Support();
 
         // Launch at login after the app was moved: the entry follows it (a plain Hidamari.exe only: a package does not move)
         if (packaged) return;

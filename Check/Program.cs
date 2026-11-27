@@ -119,6 +119,7 @@ static partial class Check
         Say($"Windows {facts["windows"]}, screen {facts["screen"]}, scale {facts["scale"]}");
 
         Directory.CreateDirectory(Path.Combine(outDir, "card"));
+        Directory.CreateDirectory(Path.Combine(outDir, "support"));
         // the app's first launch on this machine (the GitHub machine is new; nothing is left from an earlier run)
         try { File.Delete(SettingsFile); } catch { }
         facts["taskbarEdgeBefore"] = Desk.TaskbarEdge();

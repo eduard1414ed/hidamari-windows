@@ -74,7 +74,7 @@ jobs:
         run: ci/package.ps1 -Version 1.1.0 -Out out/store
       - name: A newer package, for the update check only
         shell: pwsh
-        run: ci/package.ps1 -Version 1.0.1 -Out out/update
+        run: ci/package.ps1 -Version 1.1.1 -Out out/update
       - uses: actions/upload-artifact@v5
         with:
           name: Hidamari-msix
@@ -166,6 +166,16 @@ jobs:
       - name: Keep the wsl.exe prompt off the desktop
         shell: pwsh
         run: ci/quiet-wsl.ps1
+
+      # Windows' own toasts (windows-2022 showed "Hidamari is now configured to run when you log in" when Launch at
+      # login was switched on, and it took the keyboard, so the card closed as it should under the check's next click)
+      - name: Keep Windows' notifications off the desktop
+        shell: pwsh
+        run: |
+          if (-not (Test-Path HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications)) { New-Item -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications -Force | Out-Null }
+          Set-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications -Name ToastEnabled -Value 0 -Type DWord
+          if (-not (Test-Path HKCU:\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications)) { New-Item -Path HKCU:\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications -Force | Out-Null }
+          Set-ItemProperty -Path HKCU:\Software\Policies\Microsoft\Windows\CurrentVersion\PushNotifications -Name NoToastApplicationNotification -Value 1 -Type DWord
 
       - name: Install the package and check it
         shell: pwsh
