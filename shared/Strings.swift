@@ -1,3 +1,5 @@
+import Foundation
+
 // Every text the user can see or hear lives here.
 // All of them approved by Ed on 18 November 2026 (stage 8). A new text that Ed has not approved yet is marked TEMP.
 
@@ -6,8 +8,9 @@ enum Strings {
 
     /// the switch under the time slider. On: the wall shows the current moment.
     static let followSun = "Live sun"
-    /// names under the four scene pictures, in the prototype's order (0–3).
-    static let scenes = ["Dapples", "Window", "Blinds", "Water"]
+    /// names under the scene pictures, in the film's order (Scene.allCases, use Scene.index): the prototype's four,
+    /// then the four of update 1.4 (approved by Ed with the update's task, 25 November 2026).
+    static let scenes = ["Dapples", "Window", "Blinds", "Water", "Prism", "Moon Gate", "Tree", "Glass Blocks"]
     /// Approved by Ed: the switch for the real weather.
     static let liveWeather = "Live weather"
     /// Approved by Ed (18 November 2026, update 1.1): the switch of the live motion, third under Live weather.
@@ -49,6 +52,25 @@ enum Strings {
     /// the button once it is installed: opens System Settings → Wallpaper
     static let chooseScreenSaver = "Choose in System Settings"
 
+    // Settings 1.4 (design/panel/settings-v2.*), approved by Ed on 25 November 2026. The caption at the top is
+    // `settings` below, now also seen.
+    /// at the bottom left, with the app's version: "Ver 1.4"
+    static func settingsVersion(_ version: String) -> String { "Ver \(version)" }
+    /// at the bottom right, opens `Links.author`
+    static let madeBy = "Made by Ed Tsarionov"
+
+    // MARK: The support window (update 1.4, design/support/), approved by Ed on 25 November 2026
+
+    /// above the heading, with the app's version: "Hidamari 1.4"
+    static func supportVersion(_ version: String) -> String { "Hidamari \(version)" }
+    static let supportHeading = "Help Hidamari keep growing"
+    static let supportText = "Hidamari is free, with no ads and no tracking. If you enjoy it, you can help fund its development."
+    /// the wide button, opens `Links.donate`. Ed, 25 November 2026: the link goes to Ko-fi, so the mockup's
+    /// "Support on Buy Me a Coffee" became this.
+    static let supportButton = "Support and Buy me a coffee"
+    static let supportThanks = "Thank you for being here."
+    static let supportDone = "Done"
+
     // MARK: Only heard with VoiceOver (nothing on screen)
 
     /// The menu bar icon: the app's name, chosen by Ed on 18 November 2026.
@@ -65,7 +87,7 @@ enum Strings {
     static let locationUnavailable = "Location unavailable"
     /// the arrow that leaves the city search, and the settings.
     static let back = "Back"
-    /// the gear next to Quit, opens the settings.
+    /// the gear next to Quit, opens the settings. Since 1.4 also seen: the caption next to the back arrow.
     static let settings = "Settings"
     /// the four weather icons next to the Live weather switch while it is off.
     static let weatherClear = "Clear"
@@ -84,6 +106,11 @@ enum Strings {
     static let ownShade = "Own shade"
     /// "−" under the field, the shade works itself out again.
     static let defaultShade = "Default shade"
+    /// Approved by Ed (25 November 2026, update 1.4): VoiceOver's word for the stack at the end of the scene film,
+    /// which opens and closes the second row; the mockup's own word (design/panel/more-scenes-stack.html).
+    static let allScenes = "All scenes"
+    /// Approved by Ed (25 November 2026, update 1.4): VoiceOver's word for the up arrow under the second row that folds it.
+    static let fewerScenes = "Fewer scenes"
     /// the wave, the wall's texture.
     static let texture = "Texture"
     /// the dial, the strength of light.
@@ -112,4 +139,12 @@ enum Strings {
     /// the reason macOS shows when it asks whether the app may use the Mac's location.
     /// The same text must be in Support/Info.plist under NSLocationUsageDescription (scripts/build.sh checks it).
     static let locationUsage = "So the light on your wall follows the real sun in your city."
+}
+
+/// The two links of update 1.4, given by Ed on 25 November 2026. Opened in the browser.
+enum Links {
+    /// the support window's button: Ed's one Ko-fi page for all his projects
+    static let donate = URL(string: "https://ko-fi.com/tsarionov")!
+    /// "Made by Ed Tsarionov" in the settings: Ed's own site
+    static let author = URL(string: "https://tsarionov.com/")!
 }
