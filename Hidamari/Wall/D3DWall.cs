@@ -468,8 +468,8 @@ sealed class D3DWall : IDisposable
             var rig = Rig(n);
             c.VSSetShader(rigVs);
             c.PSSetShader(rigPs);
-            c.PSSetShaderResource(0, photo);
-            c.PSSetShaderResource(1, ids);
+            c.PSSetShaderResource(0, photo!);
+            c.PSSetShaderResource(1, ids!);
             c.PSSetSampler(0, pieceSampler);
             int layerCount = n == 2 ? WindowLeaves.Plant2Layers : 3;
             for (int layer = 0; layer < layerCount; layer++)
@@ -490,7 +490,7 @@ sealed class D3DWall : IDisposable
             c.VSSetShader(ficusVs);
             c.PSSetShader(ficusPs);
             c.VSSetShaderResource(0, Shapes(all));
-            c.PSSetShaderResource(0, profileView);
+            c.PSSetShaderResource(0, profileView!);
             c.OMSetBlendState(multiply);
             c.DrawInstanced(4, (uint)(all.Length / WindowLeaves.FicusStride), 0, 0);
         }
