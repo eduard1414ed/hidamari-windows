@@ -737,6 +737,9 @@ static partial class Check
         // the support window after an update (Windows 1.1)
         Support();
 
+        // an own wall from 1.0 has pictures of its four scenes only: 1.1 draws the rest (the card showed empty frames)
+        OwnWallFrom10();
+
         // Launch at login after the app was moved: the entry follows it (a plain Hidamari.exe only: a package does not move)
         if (packaged) return;
         using (var k = Registry.CurrentUser.CreateSubKey(RunKey)) k.SetValue("Hidamari", "\"C:\\Old place\\Hidamari.exe\"");
@@ -753,6 +756,61 @@ static partial class Check
             finally { Quit(moved); }
         }
         using (var k = Registry.CurrentUser.CreateSubKey(RunKey)) k.DeleteValue("Hidamari", false);
+    }
+
+    // ================= an own wall made in 1.0, after the update to 1.1 =================
+
+    static readonly string[] OwnThumbs10 = { "dapples", "blinds", "water", "window-0", "window-2", "window-5", "plant-0", "plant-2", "plant-5" };
+    static readonly string[] OwnThumbs11 = { "dapples", "blinds", "water", "prism", "moon-gate", "tree", "glass-blocks",
+        "window-0", "window-2", "window-5", "plant-0", "plant-2", "plant-5" };
+
+    /// The Thumbs folder as 1.0 left it: the nine pictures of its own wall, nothing of the scenes 1.1 added.
+    static void Thumbs10()
+    {
+        var dir = Path.Combine(DataFolder, "Thumbs");
+        if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        Directory.CreateDirectory(dir);
+        using var b = new Bitmap(240, 180);
+        using (var gr = Graphics.FromImage(b)) gr.Clear(System.Drawing.Color.FromArgb(200, 170, 160));
+        foreach (var n in OwnThumbs10) b.Save(Path.Combine(dir, $"{n}.jpg"), System.Drawing.Imaging.ImageFormat.Jpeg);
+    }
+
+    static string Missing() => string.Join(",", OwnThumbs11.Where(n => !File.Exists(Path.Combine(DataFolder, "Thumbs", $"{n}.jpg"))));
+
+    static void OwnWallFrom10()
+    {
+        const string g = "card: own wall from 1.0";
+        // the own wall is on at start
+        Thumbs10();
+        WriteSettings(new() { ["wall"] = -1 });
+        using (var run = StartApp("card-own-from-1.0"))
+        {
+            try
+            {
+                var drawn = run.Next("thumbs: 13 pictures of the own wall drawn", TimeSpan.FromSeconds(300));
+                var missing = Missing();
+                Result(g, "own wall at start: the pictures of the new scenes are drawn", drawn != null && missing == "",
+                    $"{drawn ?? "nothing drawn within 300 s"}; missing: {(missing == "" ? "none" : missing)}");
+            }
+            finally { Quit(run); }
+        }
+        // an approved wall at start, the own wall chosen on the card
+        Thumbs10();
+        WriteSettings(new() { ["wall"] = 0 });
+        using (var run = StartApp("card-own-from-1.0-chosen"))
+        {
+            try
+            {
+                run.Mark();
+                Command(run, new { @do = "choose", type = "set", change = new { wall = -1 } });
+                var drawn = run.Next("thumbs: 13 pictures of the own wall drawn", TimeSpan.FromSeconds(300));
+                var missing = Missing();
+                Result(g, "own wall chosen later: the pictures of the new scenes are drawn", drawn != null && missing == "",
+                    $"{drawn ?? "nothing drawn within 300 s"}; missing: {(missing == "" ? "none" : missing)}");
+            }
+            finally { Quit(run); }
+        }
+        WriteSettings(new());
     }
 
     // ================= where the card stands: the taskbar's edges, the scale, the icon under "^" =================

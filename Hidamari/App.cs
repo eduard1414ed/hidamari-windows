@@ -95,7 +95,8 @@ sealed class App : ApplicationContext
         card.Closed += _ => { dragging = false; restWanted = true; Kick(); StartAround("the first launch's card closed"); };
         card.Layout += SaveLayout;
         // Settings → Desktops (All / This one) is not offered: Windows does not tell an app which virtual desktop its windows are on
-        ownThumbs = File.Exists(Path.Combine(Card.ThumbsFolder, "dapples.jpg")) ? 1 : 0;
+        // all of them, not one: an own wall from 1.0 has no pictures of the scenes 1.1 added (OwnWallThumbs on the Mac checks all too)
+        ownThumbs = OwnThumbsAll() ? 1 : 0;
         if (settings.Wall == Hidamari.Settings.OwnWall && ownThumbs == 0) thumbsWanted = true;
         covers = new Covers(() => { WantDraw("a wall can be seen again", staleOnly: true); UpdateMotion("windows moved"); });
         measure.Extra = () => $"drawing {renderer.Describe}" + (animator != null ? $"; animation {(settings.Animates ? "on" : "off")}, {animator.Fps} frames a second ({animator.FpsWhy}): {animator.Summary()}" : "");
@@ -714,6 +715,7 @@ sealed class App : ApplicationContext
                 if (w is < -1 or > 5 || w == settings.Wall) return;
                 settings.Wall = w;
                 Changed($"wall {(w == Hidamari.Settings.OwnWall ? "own" : Strings.Walls[w])}");
+                if (w == Hidamari.Settings.OwnWall && !OwnThumbsAll()) thumbsWanted = true;
                 WantDraw("a wall was chosen");
                 break;
             }
@@ -906,6 +908,9 @@ sealed class App : ApplicationContext
 
     static readonly string[] ThumbNames = { "dapples", "blinds", "water", "prism", "moon-gate", "tree", "glass-blocks",
         "window-0", "window-2", "window-5", "plant-0", "plant-2", "plant-5" };
+
+    /// Every small picture of the own wall is on disk.
+    static bool OwnThumbsAll() => ThumbNames.All(n => File.Exists(Path.Combine(Card.ThumbsFolder, $"{n}.jpg")));
 
     /// The own wall was started from approved wall `from`: until its own pictures are drawn, the card shows that
     /// wall's pictures (OwnWallThumbs on the Mac does the same).
